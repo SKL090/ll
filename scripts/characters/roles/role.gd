@@ -83,12 +83,23 @@ func get_target_position() -> Vector2:
 
 ## Получить локацию для социализации
 func _get_social_location() -> Vector2:
-	# Центр города или случайное место
+	# Площадь в центре города или случайное проходимое место
+	if GameManager.world_map:
+		return GameManager.world_map.cell_center_world(Vector2i(31, 20))
 	return Vector2(500, 350)
+
+
+## Центр клетки в мировых координатах (общий хелпер для ролей)
+func _cell(x: int, y: int) -> Vector2:
+	if GameManager.world_map:
+		return GameManager.world_map.cell_center_world(Vector2i(x, y))
+	return Vector2(x * 64 + 32, y * 64 + 32)
 
 ## Получить локацию для блуждания
 func _get_wander_location() -> Vector2:
-	# Случайная позиция в городе
+	# Случайная проходимая позиция на карте
+	if GameManager.world_map:
+		return GameManager.world_map.random_walkable_position()
 	var city_bounds = Vector2(800, 500)
 	return Vector2(randf_range(100, city_bounds.x), randf_range(100, city_bounds.y))
 

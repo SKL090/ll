@@ -9,16 +9,8 @@ extends Role
 var is_on_duty: bool = true
 var patrol_mode: String = "normal"  # normal, aggressive, alert
 
-# Настройки
-const PATROL_POINTS: Array[Vector2] = [
-	Vector2(200, 350),
-	Vector2(300, 350),
-	Vector2(400, 300),
-	Vector2(500, 350),
-	Vector2(600, 280),  # Замок
-	Vector2(450, 400),
-	Vector2(300, 400),
-]
+# Настройки (заполняется в _init по тайловым координатам)
+var PATROL_POINTS: Array[Vector2] = []
 
 func _init():
 	role_type = "garrison"
@@ -29,15 +21,16 @@ func _init():
 
 func initialize(npc: BaseNPC) -> void:
 	super.initialize(npc)
+	barracks_position = _cell(5, 16)
 	work_position = barracks_position
-	home_position = Vector2(180, 320)
+	home_position = _cell(4, 15)
 	assigned_zone = _get_random_patrol_zone()
 
 func _get_random_patrol_zone() -> Vector2:
 	var zones = [
-		Vector2(200, 350),
-		Vector2(500, 350),
-		Vector2(600, 280),
+		_cell(5, 16),   # казарма
+		_cell(31, 20),  # площадь
+		_cell(44, 8),   # собор
 	]
 	return zones[randi() % zones.size()]
 
@@ -107,17 +100,32 @@ func get_target_position() -> Vector2:
 
 func _get_next_patrol_point() -> Vector2:
 	# Патрулируем зону или случайную точку
-	var zone_range = 50.0
-	
+	var zone_range = GameManager.world_map.get_tile_size() * 1.5 if GameManager.world_map else 50.0
+
 	if patrol_mode == "aggressive":
 		# Агрессивный патруль - больше точек
-		return PATROL_POINTS[randi() % PATROL_POINTS.size()]
+		var points = _patrol_points()
+		return points[randi() % points.size()]
 	else:
 		# Нормальный патруль - зона
 		return assigned_zone + Vector2(
 			randf_range(-zone_range, zone_range),
 			randf_range(-zone_range, zone_range)
 		)
+
+
+func _patrol_points() -> Array[Vector2]:
+	if PATROL_POINTS.is_empty():
+		PATROL_POINTS = [
+			_cell(5, 16),
+			_cell(31, 20),
+			_cell(17, 8),
+			_cell(44, 8),
+			_cell(55, 40),
+			_cell(40, 29),
+			_cell(12, 28),
+		]
+	return PATROL_POINTS
 
 ## Охранять барона
 func guard_baron() -> void:

@@ -16,7 +16,7 @@ const CRITICAL_THRESHOLD: float = 20.0
 const WARNING_THRESHOLD: float = 35.0
 
 # Скорость изменения потребностей
-const HUNGER_DECAY_RATE: float = 1.5      # в секунду
+const HUNGER_DECAY_RATE: float = 0.6      # в секунду
 const ENERGY_DECAY_RATE_DAY: float = 0.8
 const ENERGY_DECAY_RATE_NIGHT: float = 2.5
 const SOCIAL_DECAY_RATE: float = 0.3

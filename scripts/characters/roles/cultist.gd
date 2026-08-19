@@ -26,11 +26,24 @@ func _init():
 	sleep_end_hour = 6.0
 
 func initialize(npc: BaseNPC) -> void:
+	# сохраняем прежние дом/работу (культист живёт той же жизнью)
+	var prev_home: Vector2 = npc.role.home_position if (npc.role and npc.role != self) else Vector2.ZERO
+	var prev_work: Vector2 = npc.role.work_position if (npc.role and npc.role != self) else Vector2.ZERO
+
 	super.initialize(npc)
-	
-	# Культист работает как обычный житель днём
-	work_position = Vector2(460, 410)  # Магазин - прикрытие
-	home_position = Vector2(850, 480)
+
+	# Тёмное место для ритуалов — дальний угол карты
+	ritual_location = _cell(55, 40)
+	hideout_position = _cell(57, 41)
+
+	if prev_home != Vector2.ZERO:
+		home_position = prev_home
+	else:
+		home_position = _cell(52, 28)
+	if prev_work != Vector2.ZERO:
+		work_position = prev_work
+	else:
+		work_position = _cell(42, 29)  # магазин — прикрытие
 
 func update(delta: float) -> void:
 	super.update(delta)

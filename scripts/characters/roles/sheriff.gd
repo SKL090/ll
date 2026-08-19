@@ -21,18 +21,21 @@ func _init():
 	sleep_start_hour = 22.0
 	sleep_end_hour = 6.0
 	
-	patrol_route = [
-		Vector2(300, 350),
-		Vector2(500, 350),
-		Vector2(600, 300),
-		Vector2(400, 400),
-		Vector2(300, 400),
-	]
+	patrol_route = []  # заполняется в initialize по тайловым координатам
 
 func initialize(npc: BaseNPC) -> void:
 	super.initialize(npc)
+	police_station_position = _cell(5, 16)
 	work_position = police_station_position
-	home_position = Vector2(250, 380)
+	home_position = _cell(4, 15)
+	if patrol_route.is_empty():
+		patrol_route = [
+			_cell(31, 20),
+			_cell(17, 8),
+			_cell(44, 8),
+			_cell(40, 29),
+			_cell(12, 28),
+		]
 	
 	# Подключаемся к сигналам расследования
 	if GameManager.investigation_system:
@@ -135,12 +138,12 @@ func _get_patrol_point() -> Vector2:
 
 func _get_suspicious_location() -> Vector2:
 	var suspicious_places = [
-		Vector2(700, 450),
-		Vector2(100, 450),
-		Vector2(500, 100),
-		Vector2(800, 300),
-		Vector2(900, 500),
-		Vector2(150, 500),
+		_cell(55, 40),
+		_cell(5, 16),
+		_cell(31, 20),
+		_cell(40, 29),
+		_cell(52, 28),
+		_cell(3, 28),
 	]
 	return suspicious_places[randi() % suspicious_places.size()]
 
