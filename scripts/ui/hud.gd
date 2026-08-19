@@ -346,6 +346,14 @@ func _on_weather_changed(weather: WeatherSystem.WeatherType):
 		weather_label.text = GameManager.weather_system.get_weather_string()
 	_add_event("🌤️ Погода: %s" % GameManager.weather_system.get_weather_string(), Color.CYAN)
 
+func _on_gurps_crit(roll: int, target: int):
+	_add_event("🎯 Критический успех: %d vs %d" % [roll, target], Color.YELLOW)
+
+
+func _on_gurps_fumble(roll: int, target: int):
+	_add_event("💥 Критический провал: %d vs %d" % [roll, target], Color.RED)
+
+
 func _process(delta: float):
 	if randf() < 0.1:
 		update_stats()

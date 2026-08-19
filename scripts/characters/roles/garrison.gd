@@ -8,7 +8,6 @@ extends Role
 # Статус
 var is_on_duty: bool = true
 var patrol_mode: String = "normal"  # normal, aggressive, alert
-var assigned_zone: Vector2 = Vector2.ZERO
 
 # Настройки
 const PATROL_POINTS: Array[Vector2] = [

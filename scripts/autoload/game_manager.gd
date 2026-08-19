@@ -1,6 +1,5 @@
 ## Глобальный менеджер игры
 ## Управляет игровым состоянием, NPC и событиями
-class_name GameManager
 extends Node
 
 signal day_changed(day: int)

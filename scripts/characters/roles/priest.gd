@@ -82,12 +82,7 @@ func conduct_ritual(target: BaseNPC) -> void:
 	target.need_system.social += 20
 	target.need_system.energy += 10
 	
-	owner_npc.relationship_graph.modify_relationship(
-		target.npc_id,
-		owner_npc.npc_id,
-		trust_delta = TRUST_BONUS,
-		love_delta = 5.0
-	)
+	owner_npc.relationship_graph.modify_relationship(target.npc_id, owner_npc.npc_id, TRUST_BONUS, 5.0)
 	
 	# Увеличиваем влияние церкви
 	influence = clamp(influence + 2.0, 0.0, 100.0)
@@ -97,11 +92,7 @@ func preach() -> void:
 	# Все NPC получают бонус
 	for npc in GameManager.npcs:
 		npc.need_system.social += 10
-		npc.relationship_graph.modify_relationship(
-			npc.npc_id,
-			owner_npc.npc_id,
-			trust_delta = 2.0
-		)
+		npc.relationship_graph.modify_relationship(npc.npc_id, owner_npc.npc_id, 2.0)
 	
 	# Порядок немного растёт
 	if GameManager.event_system:

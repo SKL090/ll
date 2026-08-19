@@ -88,20 +88,11 @@ func conduct_mass() -> void:
 	
 	for npc in GameManager.npcs:
 		npc.need_system.social += 15
-		npc.relationship_graph.modify_relationship(
-			npc.npc_id,
-			owner_npc.npc_id,
-			trust_delta = 3.0
-		)
+		npc.relationship_graph.modify_relationship(npc.npc_id, owner_npc.npc_id, 3.0)
 
 ## Снять проклятие с еретика (благословение)
 func absolve_sinner(npc: BaseNPC) -> void:
-	npc.relationship_graph.modify_relationship(
-		npc.npc_id,
-		owner_npc.npc_id,
-		trust_delta = 30.0,
-		love_delta = 20.0
-	)
+	npc.relationship_graph.modify_relationship(npc.npc_id, owner_npc.npc_id, 30.0, 20.0)
 	
 	# Увеличиваем влияние церкви
 	church_influence = clamp(church_influence + 5.0, 0.0, 100.0)
