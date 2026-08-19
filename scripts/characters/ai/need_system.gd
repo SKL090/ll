@@ -26,10 +26,15 @@ const EATING_RATE: float = 15.0          # в секунду
 const SLEEPING_RATE: float = 25.0        # в секунду
 const SOCIALIZING_RATE: float = 10.0     # в секунду
 
+var _hunger_alerted: bool = false
+var _energy_alerted: bool = false
+var _social_alerted: bool = false
+
 func _process(delta: float) -> void:
+	if GameManager.is_paused:
+		return
+
 	var is_night = TimeSystem.is_nighttime()
-	
-	# Обновляем потребности
 	_update_hunger(delta)
 	_update_energy(delta, is_night)
 	_update_social(delta)
@@ -39,8 +44,12 @@ func _update_hunger(delta: float) -> void:
 	hunger = clamp(hunger, 0.0, 100.0)
 	
 	if hunger <= CRITICAL_THRESHOLD:
-		emit_signal("critical_need", "hunger")
-	
+		if not _hunger_alerted:
+			_hunger_alerted = true
+			emit_signal("critical_need", "hunger")
+	else:
+		_hunger_alerted = false
+
 	emit_signal("need_changed", "hunger", hunger)
 
 func _update_energy(delta: float, is_night: bool) -> void:
@@ -49,8 +58,12 @@ func _update_energy(delta: float, is_night: bool) -> void:
 	energy = clamp(energy, 0.0, 100.0)
 	
 	if energy <= CRITICAL_THRESHOLD:
-		emit_signal("critical_need", "energy")
-	
+		if not _energy_alerted:
+			_energy_alerted = true
+			emit_signal("critical_need", "energy")
+	else:
+		_energy_alerted = false
+
 	emit_signal("need_changed", "energy", energy)
 
 func _update_social(delta: float) -> void:
@@ -58,8 +71,12 @@ func _update_social(delta: float) -> void:
 	social = clamp(social, 0.0, 100.0)
 	
 	if social <= CRITICAL_THRESHOLD:
-		emit_signal("critical_need", "social")
-	
+		if not _social_alerted:
+			_social_alerted = true
+			emit_signal("critical_need", "social")
+	else:
+		_social_alerted = false
+
 	emit_signal("need_changed", "social", social)
 
 ## Есть

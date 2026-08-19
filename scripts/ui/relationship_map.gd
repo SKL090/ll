@@ -13,7 +13,7 @@ const COLORS = {
 	"cultist": Color(0.4, 0.0, 0.4, 1),
 }
 
-var is_visible: bool = false
+var map_open: bool = false
 
 func _ready():
 	_create_ui()
@@ -38,17 +38,20 @@ func _create_ui():
 	style.corner_radius_bottom_left = 8
 	style.corner_radius_bottom_right = 8
 	panel.add_theme_stylebox_override("panel", style)
-	
+
+	var root_box = VBoxContainer.new()
+	panel.add_child(root_box)
+
 	var header = Label.new()
 	header.text = "🕸️ Карта Города"
 	header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	header.add_theme_color_override("font_color", Color(1, 0.8, 0.2))
 	header.add_theme_font_size_override("font_size", 18)
-	panel.add_child(header)
-	
+	root_box.add_child(header)
+
 	scroll = ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	panel.add_child(scroll)
+	root_box.add_child(scroll)
 	
 	grid = GridContainer.new()
 	grid.columns = 3
@@ -56,9 +59,9 @@ func _create_ui():
 	scroll.add_child(grid)
 
 func toggle():
-	is_visible = not is_visible
-	visible = is_visible
-	if is_visible:
+	map_open = not map_open
+	visible = map_open
+	if map_open:
 		update_map()
 
 func update_map():
@@ -153,5 +156,5 @@ func _get_role_color(role: String) -> Color:
 	return Color.WHITE
 
 func _process(delta: float):
-	if is_visible and randf() < 0.1:
+	if map_open and randf() < 0.1:
 		update_map()

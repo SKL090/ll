@@ -14,6 +14,7 @@ var role_type: String = "resident"
 # Местоположения
 var home_position: Vector2 = Vector2.ZERO
 var work_position: Vector2 = Vector2.ZERO
+var assigned_zone: Vector2 = Vector2.ZERO
 
 # Владелец
 var owner_npc: BaseNPC = null

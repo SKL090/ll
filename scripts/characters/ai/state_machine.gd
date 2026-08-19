@@ -4,7 +4,6 @@ extends Node
 
 signal state_changed(from_state: String, to_state: String)
 
-# Состояния
 enum State {
 	IDLE,
 	WALKING,
@@ -19,29 +18,38 @@ enum State {
 	ARRESTING,
 }
 
-# Текущее состояние
 var current_state: State = State.IDLE
 var previous_state: State = State.IDLE
 
-# Владелец
-var owner: Node2D
+var owner_npc: Node2D
 
-# Таймеры состояний
 var state_timer: float = 0.0
 var min_state_duration: float = 1.0
 
-# Цель движения
 var target_position: Vector2 = Vector2.ZERO
 var target_node: Node2D = null
 
-func _init(p_owner: Node2D):
-	owner = p_owner
+
+func _init(p_owner: Node2D = null) -> void:
+	owner_npc = p_owner
+
+
+func set_owner_npc(p_owner: Node2D) -> void:
+	owner_npc = p_owner
+
 
 func _physics_process(delta: float) -> void:
+	if GameManager.is_paused:
+		return
+	if owner_npc == null or not is_instance_valid(owner_npc):
+		return
+	if owner_npc is BaseNPC and not owner_npc.is_alive:
+		return
+
 	state_timer += delta
 	_process_state(delta)
 
-## Обработка текущего состояния
+
 func _process_state(delta: float) -> void:
 	match current_state:
 		State.IDLE:
@@ -67,159 +75,159 @@ func _process_state(delta: float) -> void:
 		State.ARRESTING:
 			_process_arresting(delta)
 
-## Сменить состояние
+
 func change_state(new_state: State) -> void:
 	if new_state == current_state:
 		return
-	
+
 	previous_state = current_state
 	current_state = new_state
 	state_timer = 0.0
-	
+
 	var from_name = State.keys()[previous_state]
 	var to_name = State.keys()[new_state]
-	
 	emit_signal("state_changed", from_name, to_name)
-	
 	_on_state_enter(new_state)
 
-## Обработка входа в состояние
-func _on_state_enter(state: State) -> void:
-	match state:
-		State.WALKING:
-			# Можно добавить звук шагов и т.д.
-			pass
-		State.SLEEPING:
-			# Анимация сна
-			pass
-		State.WORKING:
-			# Начать работу
-			pass
 
-# ==================== ОБРАБОТЧИКИ СОСТОЯНИЙ ====================
+func _on_state_enter(_state: State) -> void:
+	if owner_npc:
+		owner_npc.velocity = Vector2.ZERO
 
-func _process_idle(delta: float) -> void:
-	# Случайное блуждание если долго стоим
-	if state_timer > 3.0:
-		var wander_pos = _get_wander_position()
-		if wander_pos != Vector2.ZERO:
-			move_to(wander_pos)
 
-func _process_walking(delta: float) -> void:
+func _process_idle(_delta: float) -> void:
+	if owner_npc:
+		owner_npc.velocity = Vector2.ZERO
+
+
+func _process_walking(_delta: float) -> void:
 	if target_position == Vector2.ZERO:
 		change_state(State.IDLE)
 		return
-	
-	var direction = (target_position - owner.global_position)
+
+	var direction = target_position - owner_npc.global_position
 	var distance = direction.length()
-	
-	if distance < 5.0:
-		# Достигли цели
+
+	if distance < 8.0:
 		_on_target_reached()
 		return
-	
-	# Двигаемся к цели
-	direction = direction.normalized()
-	owner.velocity = direction * owner.move_speed
-	owner.move_and_slide()
-	
-	# Смотрим в направлении движения
-	if direction != Vector2.ZERO:
-		owner.look_at(owner.global_position + direction)
 
-func _process_working(delta: float) -> void:
-	# Симуляция работы
-	pass
+	direction = direction.normalized()
+	owner_npc.velocity = direction * owner_npc.move_speed
+	owner_npc.move_and_slide()
+
+
+func _process_working(_delta: float) -> void:
+	if owner_npc:
+		owner_npc.velocity = Vector2.ZERO
+
 
 func _process_eating(delta: float) -> void:
-	if state_timer > 5.0:  # 5 секунд на еду
+	_restore_need("hunger", delta)
+	if state_timer > 5.0 or _need_value("hunger") >= 85.0:
 		change_state(State.IDLE)
+
 
 func _process_sleeping(delta: float) -> void:
-	if state_timer > 8.0:  # 8 секунд на сон
+	_restore_need("energy", delta)
+	if state_timer > 8.0 or _need_value("energy") >= 90.0:
 		change_state(State.IDLE)
+
 
 func _process_socializing(delta: float) -> void:
-	if state_timer > 4.0:
+	_restore_need("social", delta)
+	if state_timer > 4.0 or _need_value("social") >= 80.0:
 		change_state(State.IDLE)
 
-func _process_patrolling(delta: float) -> void:
-	# Патрулирование (для шерифа)
-	if state_timer > 10.0:
+
+func _process_patrolling(_delta: float) -> void:
+	if state_timer > 8.0:
 		target_position = _get_patrol_point()
 		if target_position != Vector2.ZERO:
 			change_state(State.WALKING)
 
-func _process_stealing(delta: float) -> void:
-	# Воровство (для жителей-воров)
+
+func _process_stealing(_delta: float) -> void:
 	if state_timer > 3.0:
 		change_state(State.IDLE)
 
-func _process_investigating(delta: float) -> void:
-	# Расследование (для шерифа)
+
+func _process_investigating(_delta: float) -> void:
 	pass
 
-func _process_fleeing(delta: float) -> void:
-	# Бегство от опасности
+
+func _process_fleeing(_delta: float) -> void:
 	pass
 
-func _process_arresting(delta: float) -> void:
-	# Арест
+
+func _process_arresting(_delta: float) -> void:
 	pass
 
-# ==================== ДЕЙСТВИЯ ====================
 
-## Двигаться к позиции
 func move_to(position: Vector2) -> void:
 	target_position = position
 	change_state(State.WALKING)
 
-## Двигаться к ноде
+
 func move_to_node(node: Node2D) -> void:
+	if node == null:
+		return
 	target_node = node
 	target_position = node.global_position
 	change_state(State.WALKING)
 
-## Остановиться
+
 func stop() -> void:
 	target_position = Vector2.ZERO
 	target_node = null
-	owner.velocity = Vector2.ZERO
+	if owner_npc:
+		owner_npc.velocity = Vector2.ZERO
 	change_state(State.IDLE)
 
-## Начать работать
+
 func start_working() -> void:
 	change_state(State.WORKING)
 
-## Есть
+
 func start_eating() -> void:
 	change_state(State.EATING)
 
-## Спать
+
 func start_sleeping() -> void:
 	change_state(State.SLEEPING)
 
-## Общаться
+
 func start_socializing() -> void:
 	change_state(State.SOCIALIZING)
 
-## Патрулировать
+
 func start_patrolling() -> void:
 	target_position = _get_patrol_point()
 	change_state(State.PATROLLING)
 
-# ==================== УТИЛИТЫ ====================
+
+func start_stealing() -> void:
+	change_state(State.STEALING)
+
+
+func start_investigating() -> void:
+	change_state(State.INVESTIGATING)
+
 
 func _on_target_reached() -> void:
-	stop()
+	if owner_npc:
+		owner_npc.velocity = Vector2.ZERO
+	change_state(State.IDLE)
+
 
 func _get_wander_position() -> Vector2:
-	# Случайная позиция рядом с текущей
+	if owner_npc == null:
+		return Vector2.ZERO
 	var offset = Vector2(randf_range(-100, 100), randf_range(-100, 100))
-	return owner.global_position + offset
+	return owner_npc.global_position + offset
+
 
 func _get_patrol_point() -> Vector2:
-	# Точка патруля для шерифа
 	var patrol_points = [
 		Vector2(400, 300),
 		Vector2(600, 300),
@@ -229,6 +237,34 @@ func _get_patrol_point() -> Vector2:
 	]
 	return patrol_points[randi() % patrol_points.size()]
 
-## Получить текущее состояние в виде строки
+
 func get_state_name() -> String:
 	return State.keys()[current_state]
+
+
+func _restore_need(need_name: String, delta: float) -> void:
+	if not (owner_npc is BaseNPC):
+		return
+	var needs: NeedSystem = owner_npc.need_system
+	if needs == null:
+		return
+	match need_name:
+		"hunger":
+			needs.eat(NeedSystem.EATING_RATE * delta)
+		"energy":
+			needs.sleep(NeedSystem.SLEEPING_RATE * delta)
+		"social":
+			needs.socialize(NeedSystem.SOCIALIZING_RATE * delta)
+
+
+func _need_value(need_name: String) -> float:
+	if not (owner_npc is BaseNPC) or owner_npc.need_system == null:
+		return 100.0
+	match need_name:
+		"hunger":
+			return owner_npc.need_system.hunger
+		"energy":
+			return owner_npc.need_system.energy
+		"social":
+			return owner_npc.need_system.social
+	return 100.0

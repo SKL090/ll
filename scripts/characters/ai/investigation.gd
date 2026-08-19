@@ -158,8 +158,21 @@ func _perform_daily_investigation(investigation: Investigation) -> void:
 	if not sheriff:
 		return
 	
-	# Шериф получает улики каждый день
-	var daily_evidence = randf_range(5.0, 15.0)
+	var daily_evidence := 4.0
+	var gs: GURPSSystem = GameManager.gurps_system
+	if gs:
+		var roll = gs.iq_check(sheriff, 0, "Расследование: " + sheriff.npc_name)
+		print("🔍 ", gs.describe_result(roll))
+		if roll.critical:
+			daily_evidence = 20.0
+		elif roll.success:
+			daily_evidence = 8.0 + float(roll.margin)
+		elif roll.fumble:
+			daily_evidence = 0.0
+		else:
+			daily_evidence = 3.0
+	else:
+		daily_evidence = randf_range(5.0, 15.0)
 	investigation.evidence = clamp(investigation.evidence + daily_evidence, 0.0, 100.0)
 	
 	# Проверяем подозреваемых
@@ -168,10 +181,17 @@ func _perform_daily_investigation(investigation: Investigation) -> void:
 
 ## Получить активного шерифа
 func _get_active_sheriff() -> BaseNPC:
+	var fallback: BaseNPC = null
 	for npc in GameManager.npcs:
-		if npc.role is SheriffRole and npc.is_alive:
+		if not is_instance_valid(npc) or not npc.is_alive or npc.role == null:
+			continue
+		if npc.role is SheriffRole:
 			return npc
-	return null
+		if npc.role is InquisitionRole:
+			fallback = npc
+		elif fallback == null and npc.role is GarrisonSoldierRole:
+			fallback = npc
+	return fallback
 
 ## Арестовать подозреваемого
 func _arrest_suspect(investigation: Investigation) -> void:
@@ -195,7 +215,7 @@ func _arrest_suspect(investigation: Investigation) -> void:
 ## Раскрыть дело
 func _solve_investigation(investigation: Investigation, culprit: BaseNPC) -> void:
 	investigation.is_solved = true
-	GameManager.unsolved_murders -= 1
+	GameManager.unsolved_murders = max(GameManager.unsolved_murders - 1, 0)
 	
 	emit_signal("investigation_solved", investigation, culprit.npc_id)
 	
@@ -238,8 +258,8 @@ func _apply_justice(culprit: BaseNPC, is_solved: bool) -> void:
 		npc.relationship_graph.modify_relationship(
 			npc.npc_id, 
 			culprit.npc_id, 
-			trust_delta: -50.0, 
-			hate_delta: 30.0
+			trust_delta = -50.0, 
+			hate_delta = 30.0
 		)
 	
 	if is_solved:
@@ -253,15 +273,16 @@ func _apply_justice(culprit: BaseNPC, is_solved: bool) -> void:
 
 ## Отправить в тюрьму
 func _send_to_prison(npc: BaseNPC, days: int) -> void:
-	# NPC временно неактивен
-	print("⛓️ %s в тюрьме на %d дней" % [npc.npc_name, days])
+	if GameManager.prison_system:
+		GameManager.prison_system.send_to_prison(npc, days, "убийство")
+	else:
+		print("⛓️ %s в тюрьме на %d дней" % [npc.npc_name, days])
 
 ## Провал расследования
 func _fail_investigation(investigation: Investigation, reason: String) -> void:
 	investigation.is_active = false
 	investigation.is_solved = false
-	GameManager.unsolved_murders += 1
-	
+
 	emit_signal("investigation_failed", reason)
 	print("❌ Расследование #%d провалено: %s" % [investigation.id, reason])
 
@@ -271,9 +292,25 @@ func interrogate_suspect(investigation: Investigation, suspect_id: int) -> void:
 		return
 	
 	investigation.interrogated.append(suspect_id)
-	investigation.evidence = clamp(investigation.evidence + EVIDENCE_PER_INTERROGATION, 0.0, 100.0)
-	
+
 	var suspect = GameManager.get_npc_by_id(suspect_id)
+	var gained := EVIDENCE_PER_INTERROGATION
+	var investigator = _get_active_sheriff()
+	var gs: GURPSSystem = GameManager.gurps_system
+	if gs and investigator and suspect:
+		var contest = gs.quick_contest(
+			investigator.gurps.intelligence if investigator.gurps else 10,
+			suspect.gurps.current_will if suspect.gurps else 10,
+			"Допрос: " + investigator.npc_name,
+			"Воля: " + suspect.npc_name
+		)
+		if contest.winner == 1:
+			gained = 10.0 + float(contest.margin)
+			print("🗣️ %s раскололся на допросе" % suspect.npc_name)
+		elif contest.winner == 2:
+			gained = 3.0
+			print("🗣️ %s держится на допросе" % suspect.npc_name)
+	investigation.evidence = clamp(investigation.evidence + gained, 0.0, 100.0)
 	if suspect:
 		investigation.clues.append("Допрослен: %s" % suspect.npc_name)
 	
@@ -285,6 +322,8 @@ func interrogate_suspect(investigation: Investigation, suspect_id: int) -> void:
 
 ## Обработка события убийства
 func _on_npc_died(victim: BaseNPC, killer: BaseNPC) -> void:
+	if killer == null or killer == victim:
+		return
 	start_investigation(victim, killer)
 
 ## Получить активное расследование для NPC

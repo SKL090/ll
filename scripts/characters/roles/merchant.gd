@@ -81,8 +81,8 @@ func sell_item(item: String, buyer: BaseNPC) -> bool:
 	owner_npc.relationship_graph.modify_relationship(
 		owner_npc.npc_id,
 		buyer.npc_id,
-		trust_delta: 5.0,
-		love_delta: 3.0
+		trust_delta = 5.0,
+		love_delta = 3.0
 	)
 	
 	return true

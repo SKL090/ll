@@ -130,7 +130,8 @@ func issue_decree(decree_type: String) -> void:
 			print("📜 Барон объявил охоту на еретиков!")
 			authority = clamp(authority - 10.0, 0.0, 100.0)  # Недовольны
 		"festival":
-			EventSystem.increase_order(20.0) if EventSystem else None
+			if GameManager.event_system:
+				GameManager.event_system.increase_order(20.0)
 			print("📜 Барон объявил праздник!")
 
 ## Назначить наказание

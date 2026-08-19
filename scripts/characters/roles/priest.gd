@@ -29,7 +29,8 @@ func update(delta: float) -> void:
 	super.update(delta)
 	
 	# Священник увеличивает порядок в городе
-	EventSystem.increase_order(MORALE_BONUS * delta * 0.1) if EventSystem else None
+	if GameManager.event_system:
+		GameManager.event_system.increase_order(MORALE_BONUS * delta * 0.1)
 
 func get_current_behavior() -> String:
 	var time = TimeSystem.current_time
@@ -84,8 +85,8 @@ func conduct_ritual(target: BaseNPC) -> void:
 	owner_npc.relationship_graph.modify_relationship(
 		target.npc_id,
 		owner_npc.npc_id,
-		trust_delta: TRUST_BONUS,
-		love_delta: 5.0
+		trust_delta = TRUST_BONUS,
+		love_delta = 5.0
 	)
 	
 	# Увеличиваем влияние церкви
@@ -99,11 +100,12 @@ func preach() -> void:
 		npc.relationship_graph.modify_relationship(
 			npc.npc_id,
 			owner_npc.npc_id,
-			trust_delta: 2.0
+			trust_delta = 2.0
 		)
 	
 	# Порядок немного растёт
-	EventSystem.increase_order(5.0) if EventSystem else None
+	if GameManager.event_system:
+		GameManager.event_system.increase_order(5.0)
 
 ## Утешить скорбящего
 func comfort_grieving(npc: BaseNPC) -> void:

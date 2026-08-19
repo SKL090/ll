@@ -69,8 +69,8 @@ func _execute_arson(criminal_id: int, attempt: Dictionary) -> void:
 				npc.relationship_graph.modify_relationship(
 					npc.npc_id,
 					criminal_id,
-					trust_delta: -30.0,
-					hate_delta: 40.0
+					trust_delta = -30.0,
+					hate_delta = 40.0
 				)
 				npc.memory_system.add_memory(
 					MemorySystem.EventType.SUSPICIOUS,
@@ -118,10 +118,8 @@ func _resolve_kidnapping(victim_id: int, kidnapping: Dictionary) -> void:
 				criminal.wealth += KIDNAP_RANSOM
 				print("💰 Выкуп уплачен: %.0f" % KIDNAP_RANSOM)
 		"killed":
-			# Убит
 			victim.die(criminal)
 			print("💀 %s убит похитителями" % victim.npc_name)
-			GameManager.commit_crime("murder", criminal, victim)
 
 ## Проверить восстание
 func _check_for_riot() -> void:
@@ -143,7 +141,7 @@ func _start_riot() -> void:
 				npc.relationship_graph.modify_relationship(
 					npc.npc_id,
 					other.npc_id,
-					hate_delta: randf_range(5.0, 15.0)
+					hate_delta = randf_range(5.0, 15.0)
 				)
 	
 	print("🔥🔥 ВОССТАНИЕ НАЧАЛОСЬ! 🔥🔥")
@@ -155,22 +153,26 @@ func _trigger_panic(intensity: float) -> void:
 		npc.relationship_graph.modify_relationship(
 			npc.npc_id,
 			npc.npc_id,  # К городу в целом
-			trust_delta: -10.0
+			trust_delta = -10.0
 		)
 
 ## Попытка поджога
 func attempt_arson(criminal: BaseNPC, target: Node2D, building_name: String = "Неизвестно") -> bool:
-	# Проверяем условия
-	var crime_chance = ARSON_CHANCE
-	
-	# Модификаторы
-	if criminal.relationship_graph.get_enemies(criminal.npc_id).size() > 0:
-		crime_chance += 0.1
-	
-	if TimeSystem.is_nighttime():
-		crime_chance += 0.1
-	
-	if randf() > crime_chance:
+	var gs: GURPSSystem = GameManager.gurps_system
+	var success := false
+	if gs:
+		var mod := 2 if TimeSystem.is_nighttime() else -2
+		var roll = gs.dx_check(criminal, mod, "Поджог: " + criminal.npc_name)
+		print("🔥 ", gs.describe_result(roll))
+		success = roll.success
+	else:
+		var crime_chance = ARSON_CHANCE
+		if criminal.relationship_graph.get_enemies(criminal.npc_id).size() > 0:
+			crime_chance += 0.1
+		if TimeSystem.is_nighttime():
+			crime_chance += 0.1
+		success = randf() <= crime_chance
+	if not success:
 		return false
 	
 	# Успех! Начинаем поджог
@@ -194,17 +196,26 @@ func attempt_kidnapping(criminal: BaseNPC, target: BaseNPC) -> bool:
 	# Проверяем условия
 	if not target or not target.is_alive:
 		return false
-	if target.role is MayorRole or target.role is SheriffRole:
+	if target.role is MayorRole or target.role is BaronRole or target.role is SheriffRole or target.role is InquisitionRole:
 		return false  # Слишком опасно
 	
-	var crime_chance = KIDNAP_CHANCE
-	
-	# Модификаторы
-	if criminal.wealth < target.wealth * 0.5:
-		crime_chance += 0.1  # Бедный преступник
-	
-	if randf() > crime_chance:
-		return false
+	var gs: GURPSSystem = GameManager.gurps_system
+	if gs:
+		var contest = gs.quick_contest(
+			criminal.gurps.strength if criminal.gurps else 10,
+			target.gurps.strength if target.gurps else 10,
+			"Похищение ST: " + criminal.npc_name,
+			"Сопротивление ST: " + target.npc_name
+		)
+		if contest.winner != 1:
+			print("👤 %s не смог похитить %s" % [criminal.npc_name, target.npc_name])
+			return false
+	else:
+		var crime_chance = KIDNAP_CHANCE
+		if criminal.wealth < target.wealth * 0.5:
+			crime_chance += 0.1
+		if randf() > crime_chance:
+			return false
 	
 	# Успех! Похищение!
 	var outcome = "released"
@@ -225,8 +236,8 @@ func attempt_kidnapping(criminal: BaseNPC, target: BaseNPC) -> bool:
 	}
 	
 	# NPC исчезает
-	target.is_visible = false
-	target.set_process(false)
+	target.visible = false
+	target.set_physics_process(false)
 	
 	print("👤💨 %s похищен!" % target.npc_name)
 	
@@ -250,14 +261,12 @@ func rescue_kidnapped(victim_id: int) -> void:
 		
 		var victim = GameManager.get_npc_by_id(victim_id)
 		if victim:
-			victim.is_visible = true
-			victim.set_process(true)
-			victim.global_position = victim.role.home_position
+			victim.visible = true
+			victim.set_physics_process(true)
+			if victim.role:
+				victim.global_position = victim.role.home_position
 			
 			print("🎉 %s освобождён!" % victim.npc_name)
 
 func _get_mayor() -> BaseNPC:
-	for npc in GameManager.npcs:
-		if npc.role is MayorRole:
-			return npc
-	return null
+	return GameManager.get_ruler()

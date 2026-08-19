@@ -102,11 +102,17 @@ func _attempt_recruit() -> void:
 	
 	var recruit = candidates[randi() % candidates.size()]
 	
-	# Шанс вербовки зависит от социальных связей
-	var recruit_chance = 20.0 - recruit.need_system.social * 0.2
-	
-	if randf() * 100.0 < recruit_chance:
-		# Успех! NPC теперь cultist
+	var gs: GURPSSystem = GameManager.gurps_system
+	var recruited := false
+	if gs:
+		var will_mod := -2 if recruit.need_system.social < 40 else 0
+		var resist = gs.will_check(recruit, will_mod, "Вербовка культа: " + recruit.npc_name)
+		recruited = not resist.success
+		print("🔮 ", gs.describe_result(resist))
+	else:
+		var recruit_chance = 20.0 - recruit.need_system.social * 0.2
+		recruited = randf() * 100.0 < recruit_chance
+	if recruited and GameManager.cult_system:
 		GameManager.cult_system.add_cultist(recruit)
 		print("🔮 %s завербован в культ!" % recruit.npc_name)
 

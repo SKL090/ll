@@ -31,6 +31,8 @@ func _ready():
 	_change_weather(WeatherType.CLEAR)
 
 func _process(delta: float):
+	if GameManager.is_paused:
+		return
 	weather_timer += delta
 	
 	if weather_timer >= weather_duration:
@@ -62,30 +64,31 @@ func _apply_weather_effects(weather: WeatherType) -> void:
 			_apply_fog_effects()
 
 func _apply_clear_effects() -> void:
-	# Ясная погода - всё хорошо
-	EventSystem.increase_order(5.0) if EventSystem else None
+	if GameManager.event_system:
+		GameManager.event_system.increase_order(5.0)
 	for npc in GameManager.npcs:
-		npc.need_system.social += 5
+		if is_instance_valid(npc) and npc.need_system:
+			npc.need_system.social = clamp(npc.need_system.social + 5.0, 0.0, 100.0)
 
 func _apply_cloudy_effects() -> void:
-	# Облачно - лёгкий дискомфорт
 	for npc in GameManager.npcs:
-		npc.need_system.energy -= 5
+		if is_instance_valid(npc) and npc.need_system:
+			npc.need_system.energy = clamp(npc.need_system.energy - 5.0, 0.0, 100.0)
 
 func _apply_rain_effects() -> void:
-	# Дождь - все в помещениях
-	EventSystem.decrease_order(5.0) if EventSystem else None
+	if GameManager.event_system:
+		GameManager.event_system.decrease_order(5.0)
 	for npc in GameManager.npcs:
-		npc.need_system.social -= 10
-		# Кражи реже (все дома)
-		pass
+		if is_instance_valid(npc) and npc.need_system:
+			npc.need_system.social = clamp(npc.need_system.social - 10.0, 0.0, 100.0)
 
 func _apply_storm_effects() -> void:
-	# Гроза - страх
-	EventSystem.decrease_order(15.0) if EventSystem else None
+	if GameManager.event_system:
+		GameManager.event_system.decrease_order(15.0)
 	for npc in GameManager.npcs:
-		npc.need_system.safety -= 30
-		npc.need_system.social -= 20
+		if is_instance_valid(npc) and npc.need_system:
+			npc.need_system.safety = clamp(npc.need_system.safety - 30.0, 0.0, 100.0)
+			npc.need_system.social = clamp(npc.need_system.social - 20.0, 0.0, 100.0)
 
 func _apply_fog_effects() -> void:
 	# Туман - идеально для преступлений

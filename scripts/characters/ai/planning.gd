@@ -141,7 +141,7 @@ func abort_plan(reason: String = "") -> void:
 	print("❌ План убийства отменён: ", reason)
 
 ## Проверить, планирует ли кто-то убийство данного NPC
-static func is_being_planned(target_id: int) -> bool:
+func is_being_planned(target_id: int) -> bool:
 	for planner_id in murder_plans.keys():
 		var plan: MurderPlan = murder_plans[planner_id]
 		if plan.target_id == target_id:
@@ -149,7 +149,7 @@ static func is_being_planned(target_id: int) -> bool:
 	return false
 
 ## Получить план против конкретной цели
-static func get_plan_against(planner_id: int) -> MurderPlan:
+func get_plan_against(planner_id: int) -> MurderPlan:
 	if murder_plans.has(planner_id):
 		return murder_plans[planner_id]
 	return null

@@ -214,7 +214,7 @@ script = ExtResource("2_hud")
 [node name="InfoPanel" type="PanelContainer" parent="HUD"]
 visible = false
 offset_left = 60.0
-offset_top = 580.0
+offset_top = 430.0
 offset_right = 450.0
 offset_bottom = 710.0
 

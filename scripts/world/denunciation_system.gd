@@ -145,7 +145,7 @@ func investigate_denouncement(d: Denouncement) -> bool:
 			denouncer.relationship_graph.modify_relationship(
 				denouncer.npc_id,
 				d.accused_id,
-				hate_delta: 20.0  # Ещё больше ненавидят
+				hate_delta = 20.0  # Ещё больше ненавидят
 			)
 	
 	return is_true

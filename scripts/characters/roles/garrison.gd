@@ -22,7 +22,7 @@ const PATROL_POINTS: Array[Vector2] = [
 ]
 
 func _init():
-	role_type = "soldier"
+	role_type = "garrison"
 	work_start_hour = 6.0
 	work_end_hour = 22.0
 	sleep_start_hour = 23.0

@@ -87,37 +87,94 @@ func _update_plan(plan: MurderPlan) -> void:
 	# Рост риска улик
 	plan.evidence_risk = clamp(plan.evidence_risk + EVIDENCE_RISK_PER_DAY, 0.0, 100.0)
 
-## Попытка убийства (вызывается из NPC)
+## Попытка убийства: атака DX vs уклонение, урон thrust (режущий)
 func attempt_murder(planner: BaseNPC, target: BaseNPC) -> bool:
 	var plan = _get_or_create_plan(planner, target)
-	
-	# Проверяем условия
-	if not plan.can_attempt():
+	if plan == null or not plan.can_attempt():
 		return false
-	
-	# Проверяем ночь (80% шанс)
+
 	if randf() > NIGHT_ONLY_PROBABILITY and not TimeSystem.is_nighttime():
 		return false
-	
-	# Вычисляем шанс успеха
-	var success_chance = _calculate_success_chance(plan)
-	
-	emit_signal("murder_attempted", planner, target, success_chance > randf() * 100)
-	
-	if success_chance > randf() * 100:
-		# Успех!
-		_execute_murder(planner, target, plan)
-		return true
-	else:
-		# Попытка не удалась
-		plan.readiness -= 20.0
-		plan.evidence_risk += 20.0  # Увеличиваем риск
-		
-		# Возможно, заметили
-		if randf() < WITNESS_DETECTION_CHANCE:
-			_notify_sheriff_about_attempt(planner, target)
-		
+
+	var gs: GURPSSystem = GameManager.gurps_system
+	if gs == null:
+		return _attempt_murder_fallback(planner, target, plan)
+
+	var attack_mod := 0
+	if TimeSystem.is_nighttime():
+		attack_mod += 2
+	if plan.readiness >= 80.0:
+		attack_mod += 2
+	if target.role is MayorRole or target.role is BaronRole:
+		attack_mod -= 2
+
+	var attack = gs.attack_check(planner, attack_mod)
+	print("🗡️ ", gs.describe_result(attack))
+
+	if not attack.success:
+		plan.readiness -= 15.0
+		plan.evidence_risk += 10.0
+		emit_signal("murder_attempted", planner, target, false)
+		_maybe_notice_attempt(planner, target, gs)
 		return false
+
+	var dodge_mod := -4 if TimeSystem.is_nighttime() else 0
+	var dodge = gs.dodge_check(target, dodge_mod)
+	print("🛡️ ", gs.describe_result(dodge))
+
+	if dodge.success and not attack.critical:
+		plan.readiness -= 10.0
+		plan.evidence_risk += 8.0
+		emit_signal("murder_attempted", planner, target, false)
+		_maybe_notice_attempt(planner, target, gs)
+		return false
+
+	var st := planner.gurps.strength if planner.gurps else 10
+	var raw := gs.thrust_damage(st)
+	if attack.critical:
+		raw += gs.roll_1d6()
+	var result = target.take_damage(raw, "cutting", planner)
+
+	if not target.is_alive:
+		emit_signal("murder_attempted", planner, target, true)
+		_finish_successful_murder(planner, target, plan)
+		return true
+
+	plan.readiness -= 20.0
+	plan.evidence_risk += 20.0
+	emit_signal("murder_attempted", planner, target, false)
+	print("🩸 %s ранил %s, но не убил (HP %s)" % [
+		planner.npc_name, target.npc_name,
+		str(result.get("new_hp", "?"))
+	])
+	_maybe_notice_attempt(planner, target, gs)
+	return false
+
+
+func _attempt_murder_fallback(planner: BaseNPC, target: BaseNPC, plan: MurderPlan) -> bool:
+	var success_chance = _calculate_success_chance(plan)
+	if success_chance > randf() * 100.0:
+		target.die(planner)
+		_finish_successful_murder(planner, target, plan)
+		return true
+	plan.readiness -= 20.0
+	plan.evidence_risk += 20.0
+	return false
+
+
+func _maybe_notice_attempt(planner: BaseNPC, target: BaseNPC, gs: GURPSSystem) -> void:
+	var notice = gs.perception_check(target, 0, "Заметил нападение: " + target.npc_name)
+	if notice.success:
+		_notify_sheriff_about_attempt(planner, target)
+	else:
+		for npc in GameManager.npcs:
+			if npc == planner or npc == target or not npc.is_alive:
+				continue
+			if npc.global_position.distance_to(target.global_position) > 180.0:
+				continue
+			if gs.perception_check(npc, -2, "Свидетель нападения: " + npc.npc_name).success:
+				_notify_sheriff_about_attempt(planner, target)
+				break
 
 ## Вычислить шанс успеха
 func _calculate_success_chance(plan: MurderPlan) -> float:
@@ -131,29 +188,17 @@ func _calculate_success_chance(plan: MurderPlan) -> float:
 	if TimeSystem.is_nighttime():
 		base_chance += 15.0
 	
-	# Мэр - сложная цель
 	var target = GameManager.get_npc_by_id(plan.target_id)
-	if target and target.role is MayorRole:
-		base_chance -= 20.0  # Мэра сложнее убить
+	if target and (target.role is MayorRole or target.role is BaronRole):
+		base_chance -= 20.0
 	
 	return clamp(base_chance, 10.0, 95.0)
 
-## Выполнить убийство
-func _execute_murder(planner: BaseNPC, target: BaseNPC, plan: MurderPlan) -> void:
+func _finish_successful_murder(planner: BaseNPC, target: BaseNPC, plan: MurderPlan) -> void:
 	print("🗡️💀 %s убил %s!" % [planner.npc_name, target.npc_name])
-	
 	emit_signal("murder_committed", planner, target)
-	
-	# Убиваем цель
-	target.die(planner)
-	
-	# Обновляем отношения
 	_update_relationships_after_murder(planner, target)
-	
-	# Создаём память у свидетелей
 	_create_witness_memories(planner, target)
-	
-	# Очищаем план
 	murder_plans.erase(planner.npc_id)
 
 ## Обновить отношения после убийства
@@ -170,8 +215,8 @@ func _update_relationships_after_murder(killer: BaseNPC, victim: BaseNPC) -> voi
 			npc.relationship_graph.modify_relationship(
 				npc.npc_id,
 				killer.npc_id,
-				trust_delta: -40.0,
-				hate_delta: 50.0
+				trust_delta = -40.0,
+				hate_delta = 50.0
 			)
 			# Могут планировать месть
 			_react_to_murder(npc, killer)
@@ -193,11 +238,16 @@ func _create_witness_memories(killer: BaseNPC, victim: BaseNPC) -> void:
 		if npc.npc_id == killer.npc_id or npc.npc_id == victim.npc_id:
 			continue
 		
-		# Свидетель, если был рядом
 		var dist = npc.global_position.distance_to(victim.global_position)
-		if dist < 200 and TimeSystem.is_nighttime():
-			if randf() < WITNESS_DETECTION_CHANCE:
+		if dist > 220.0:
+			continue
+		var gs: GURPSSystem = GameManager.gurps_system
+		if gs:
+			var notice = gs.perception_check(npc, 0, "Свидетель убийства: " + npc.npc_name)
+			if notice.success:
 				witnesses.append(npc)
+		elif TimeSystem.is_nighttime() and randf() < WITNESS_DETECTION_CHANCE:
+			witnesses.append(npc)
 	
 	for witness in witnesses:
 		witness.memory_system.add_memory(
@@ -211,20 +261,20 @@ func _create_witness_memories(killer: BaseNPC, victim: BaseNPC) -> void:
 		witness.relationship_graph.modify_relationship(
 			witness.npc_id,
 			killer.npc_id,
-			trust_delta: -50.0,
-			hate_delta: 40.0
+			trust_delta = -50.0,
+			hate_delta = 40.0
 		)
 
 ## Уведомить шерифа о попытке убийства
 func _notify_sheriff_about_attempt(planner: BaseNPC, target: BaseNPC) -> void:
 	for npc in GameManager.npcs:
-		if npc.role is SheriffRole:
+		if npc.role is SheriffRole or npc.role is InquisitionRole:
 			npc.memory_system.add_memory(
 				MemorySystem.EventType.SUSPICIOUS,
 				planner.npc_id,
 				"%s был замечен рядом с %s ночью" % [planner.npc_name, target.npc_name]
 			)
-			print("🔍 Шериф заподозрил %s в намерениях" % planner.npc_name)
+			print("🔍 Стража заподозрила %s в намерениях" % planner.npc_name)
 
 ## Начать планирование убийства
 func start_planning_murder(planner: BaseNPC, target: BaseNPC) -> MurderPlan:
@@ -311,12 +361,24 @@ func get_plan_against(target_id: int) -> MurderPlan:
 ## Обработка смены фазы дня
 func _on_phase_changed(phase: TimeSystem.TimePhase) -> void:
 	if phase == TimeSystem.TimePhase.NIGHT:
-		# Ночью увеличиваем шанс попытки убийства
-		pass
+		_try_night_murders()
 	elif phase == TimeSystem.TimePhase.DAY:
-		# Днём сбрасываем часть риска (никто не заметил)
 		for plan in murder_plans.values():
 			plan.evidence_risk = clamp(plan.evidence_risk - 5.0, 0.0, 100.0)
+
+
+func _try_night_murders() -> void:
+	var planner_ids: Array = murder_plans.keys()
+	for planner_id in planner_ids:
+		if not murder_plans.has(planner_id):
+			continue
+		var plan: MurderPlan = murder_plans[planner_id]
+		if not plan.can_attempt():
+			continue
+		var planner = GameManager.get_npc_by_id(planner_id)
+		var target = GameManager.get_npc_by_id(plan.target_id)
+		if planner and target and planner.is_alive and target.is_alive:
+			attempt_murder(planner, target)
 
 ## Получить статус плана
 func get_plan_status(planner_id: int) -> String:

@@ -1,92 +1,77 @@
-## GURPS Атрибуты и характеристики NPC
+## GURPS-атрибуты NPC: ST / DX / IQ / HT и производные
 class_name GURPSAttributes
 extends Node
 
-# ===== ОСНОВНЫЕ АТРИБУТЫ (GURPS) =====
+var strength: int = 10
+var dexterity: int = 10
+var intelligence: int = 10
+var health: int = 10
 
-# Базовые атрибуты (обычно 7-15 для людей)
-var strength: int = 10        # ST - Сила
-var dexterity: int = 10        # DX - Ловкость
-var intelligence: int = 10    # IQ - Интеллект
-var health: int = 10          # HT - Здоровье
-
-# ===== ВЫЧИСЛЯЕМЫЕ ХАРАКТЕРИСТИКИ =====
-
-# Очки здоровья (HP)
 var max_hp: int = 10
 var current_hp: int = 10
-
-# Очки усталости (FP)
 var max_fp: int = 10
 var current_fp: int = 10
-
-# Воля (Will) - обычно = IQ
 var max_will: int = 10
 var current_will: int = 10
-
-# Восприятие (Perception) - обычно = IQ
 var max_perception: int = 10
 var current_perception: int = 10
-
-# Базовая скорость (Basic Speed)
 var basic_speed: float = 5.0
-
-# Базовая скорость движения (Basic Move)
 var basic_move: int = 5
 
-# ===== КОНСТАНТЫ GURPS =====
 
-const BASE_HP_PER_ST: int = 1       # +1 HP за каждую единицу ST
-const BASE_FP_PER_HT: int = 1       # +1 FP за каждую единицу HT
-const WILL_PER_IQ: int = 1          # Will = IQ
-const PER_PER_IQ: int = 1           # Perception = IQ
-const SPEED_FORMULA: float = (DEX + HT) / 4.0
-const MOVE_FORMULA: int = 5         # Базовая формула
-
-# Пороги состояния здоровья
-const HEALTH_THRESHOLDS = {
-	"dead": -1,           # < 0 HP = смерть
-	"dying": 0,          # 0 HP = умирает
-	"unconscious": 3,     # < 1/3 HP = без сознания
-	"reeling": 5,        # < 1/2 HP = пошатывается
-	"healthy": 999       # > 1/2 HP = здоров
-}
-
-func _init():
+func _init() -> void:
 	recalculate_all()
+	full_restore()
 
-## Пересчитать все характеристики
+
 func recalculate_all() -> void:
-	max_hp = strength * BASE_HP_PER_ST + health
-	max_fp = health * BASE_FP_PER_HT
-	max_will = intelligence * WILL_PER_IQ
-	max_perception = intelligence * PER_PER_IQ
+	# GURPS: HP = ST, FP = HT, Will = IQ, Per = IQ, Speed = (DX+HT)/4
+	max_hp = max(strength, 1)
+	max_fp = max(health, 1)
+	max_will = max(intelligence, 1)
+	max_perception = max(intelligence, 1)
 	basic_speed = float(dexterity + health) / 4.0
-	basic_move = int(basic_speed)
-	
-	# Текущие значения не могут превышать максимальные
-	current_hp = clamp(current_hp, -max_hp, max_hp)
+	basic_move = max(int(basic_speed), 1)
+	current_hp = clamp(current_hp, -max_hp * 5, max_hp)
 	current_fp = clamp(current_fp, -max_fp, max_fp)
+	current_will = max_will
+	current_perception = max_perception
 
-## Инициализация для роли
+
+func full_restore() -> void:
+	current_hp = max_hp
+	current_fp = max_fp
+	current_will = max_will
+	current_perception = max_perception
+
+
+func get_dodge() -> int:
+	return 3 + int(basic_speed)
+
+
 func initialize_for_role(role_type: String) -> void:
 	match role_type:
-		"baron":
+		"baron", "mayor":
 			strength = 11
 			dexterity = 10
-			intelligence = 12
+			intelligence = 13
 			health = 11
-		"inquisition":
+		"inquisition", "inquisitor":
 			strength = 12
 			dexterity = 11
+			intelligence = 12
+			health = 12
+		"sheriff":
+			strength = 12
+			dexterity = 12
 			intelligence = 11
 			health = 12
-		"garrison":
-			strength = 12
-			dexterity = 10
+		"garrison", "soldier":
+			strength = 13
+			dexterity = 11
 			intelligence = 9
 			health = 12
-		"bishop":
+		"bishop", "priest":
 			strength = 8
 			dexterity = 9
 			intelligence = 13
@@ -94,102 +79,112 @@ func initialize_for_role(role_type: String) -> void:
 		"treasurer":
 			strength = 9
 			dexterity = 10
+			intelligence = 13
+			health = 10
+		"merchant":
+			strength = 9
+			dexterity = 11
 			intelligence = 12
 			health = 10
 		"cultist":
 			strength = 9
-			dexterity = 11
-			intelligence = 11
+			dexterity = 12
+			intelligence = 12
 			health = 10
 		_:
-			# Случайные характеристики для жителей
-			strength = randi() % 5 + 8   # 8-12
+			strength = randi() % 5 + 8
 			dexterity = randi() % 5 + 8
 			intelligence = randi() % 5 + 8
 			health = randi() % 5 + 8
-	
 	recalculate_all()
-	current_hp = max_hp
-	current_fp = max_fp
-	current_will = max_will
-	current_perception = max_perception
+	full_restore()
 
-## Получить состояние здоровья
+
 func get_health_state() -> String:
-	var hp_ratio = float(current_hp) / float(max_hp)
-	
-	if current_hp <= HEALTH_THRESHOLDS.dead:
+	if current_hp <= -max_hp:
 		return "dead"
-	elif current_hp <= HEALTH_THRESHOLDS.dying:
+	if current_hp <= 0:
 		return "dying"
-	elif hp_ratio <= 0.33:
+	if float(current_hp) / float(max_hp) <= 0.33:
 		return "unconscious"
-	elif hp_ratio <= 0.5:
+	if float(current_hp) / float(max_hp) <= 0.5:
 		return "reeling"
-	else:
-		return "healthy"
+	return "healthy"
 
-## Получить описание состояния
+
 func get_health_description() -> String:
-	var state = get_health_state()
-	match state:
-		"dead": return "💀 Мёртв"
-		"dying": return "🩸 Умирает"
-		"unconscious": return "😵 Без сознания"
-		"reeling": return "🤕 Ранен"
-		"healthy": return "💚 Здоров"
-	return ""
+	match get_health_state():
+		"dead":
+			return "💀 Мёртв"
+		"dying":
+			return "🩸 Умирает"
+		"unconscious":
+			return "😵 Без сознания"
+		"reeling":
+			return "🤕 Ранен"
+		_:
+			return "💚 Здоров"
 
-## Наносить урон
-func take_damage(amount: int, damage_type: String = "basic") -> Dictionary:
-	var actual_damage = amount
-	
-	# Типы урона GURPS
+
+func take_damage(amount: int, damage_type: String = "crushing") -> Dictionary:
+	var actual := amount
+	var fp_damage := 0
 	match damage_type:
-		"burning":   # Ожог
-			actual_damage = int(amount * 0.5)
-		"crushing":  # Дробящий
-			actual_damage = amount
-		"cutting":   # Рубящий
-			actual_damage = int(amount * 1.5)
-		"impaling":  # Проникающий
-			actual_damage = int(amount * 1.5)
-		"toxic":     # Токсический
+		"burning":
+			actual = max(int(amount * 0.5), 1)
+		"crushing":
+			actual = amount
+		"cutting":
+			actual = int(round(amount * 1.5))
+		"impaling":
+			actual = int(round(amount * 2.0))
+		"toxic":
+			fp_damage = amount
 			current_fp -= amount
-			return {"damage": 0, "fp_damage": amount, "killing_blow": false}
-	
-	current_hp -= actual_damage
-	
-	var killing_blow = current_hp <= HEALTH_THRESHOLDS.dead
-	
+			return {
+				"damage": 0,
+				"fp_damage": fp_damage,
+				"killing_blow": false,
+				"new_hp": current_hp,
+				"state": get_health_state(),
+			}
+	current_hp -= actual
 	return {
-		"damage": actual_damage,
+		"damage": actual,
 		"fp_damage": 0,
-		"killing_blow": killing_blow,
+		"killing_blow": check_death(),
 		"new_hp": current_hp,
-		"state": get_health_state()
+		"state": get_health_state(),
 	}
 
-## Лечить
-func heal(amount: int) -> void:
-	current_hp = clamp(current_hp + amount, -max_hp, max_hp)
 
-## Восстановить усталость
+func heal(amount: int) -> void:
+	current_hp = clamp(current_hp + amount, -max_hp * 5, max_hp)
+
+
 func restore_fatigue(amount: int) -> void:
 	current_fp = clamp(current_fp + amount, -max_fp, max_fp)
 
-## Использовать усталость
+
 func use_fatigue(amount: int) -> bool:
 	if current_fp >= amount:
 		current_fp -= amount
 		return true
 	return false
 
-## Проверить смерть
-func check_death() -> bool:
-	return current_hp <= HEALTH_THRESHOLDS.dead
 
-## Получить все данные для сохранения
+func check_death() -> bool:
+	return current_hp <= -max_hp
+
+
+func get_summary() -> String:
+	return "ST %d  DX %d  IQ %d  HT %d\nHP %d/%d  Воля %d  Воспр. %d  Укл. %d\n%s" % [
+		strength, dexterity, intelligence, health,
+		current_hp, max_hp, current_will, current_perception, get_dodge(),
+		get_health_description(),
+	]
+
+
 func get_data() -> Dictionary:
 	return {
 		"strength": strength,
@@ -207,3 +202,15 @@ func get_data() -> Dictionary:
 		"basic_speed": basic_speed,
 		"basic_move": basic_move,
 	}
+
+
+func apply_data(data: Dictionary) -> void:
+	strength = int(data.get("strength", 10))
+	dexterity = int(data.get("dexterity", 10))
+	intelligence = int(data.get("intelligence", 10))
+	health = int(data.get("health", 10))
+	recalculate_all()
+	current_hp = int(data.get("current_hp", max_hp))
+	current_fp = int(data.get("current_fp", max_fp))
+	current_will = int(data.get("current_will", max_will))
+	current_perception = int(data.get("current_perception", max_perception))
