@@ -32,10 +32,10 @@ class Denouncement:
 		day_filed = GameManager.current_day
 		is_investigated = false
 
-func _calculate_evidence() -> float:
-	# Сила доноса зависит от причины
-	var base = randf_range(30.0, 70.0)
-	return clamp(base, 0.0, 100.0)
+	func _calculate_evidence() -> float:
+		# Сила доноса зависит от причины
+		var base = randf_range(30.0, 70.0)
+		return clamp(base, 0.0, 100.0)
 
 func _ready():
 	print("📜 Система доносов инициализирована")
