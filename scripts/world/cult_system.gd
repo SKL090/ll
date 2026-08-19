@@ -79,7 +79,8 @@ func _apply_ritual_effect() -> void:
 	
 	match effect:
 		0:  # Паника
-			EventSystem.decrease_order(10.0) if EventSystem else None
+			if GameManager.event_system:
+				GameManager.event_system.decrease_order(10.0)
 		1:  # Убийство
 			_sacrifice_victim()
 		2:  # Проклятие
@@ -101,7 +102,8 @@ func _sacrifice_victim() -> void:
 		return
 	
 	var victim = victims[randi() % victims.size()]
-	victim.die(cultists[0] if cultists.size() > 0 else null)
+	var killer: BaseNPC = GameManager.get_npc_by_id(cultists[0]) if cultists.size() > 0 else null
+	victim.die(killer)
 	
 	print("🔮💀 Жертвоприношение: %s!" % victim.npc_name)
 
@@ -118,7 +120,11 @@ func _curse_random_citizen() -> void:
 	
 	var target = targets[randi() % targets.size()]
 	target.need_system.energy -= 40
-	
+	var gs: GURPSSystem = GameManager.gurps_system
+	if gs and target.gurps:
+		var resist = gs.ht_check(target, 0, "Проклятие: " + target.npc_name)
+		if not resist.success:
+			target.gurps.take_damage(2, "toxic")
 	print("🔮 Проклятие обрушилось на %s!" % target.npc_name)
 
 func _attempt_spread() -> void:
@@ -131,7 +137,15 @@ func _attempt_spread() -> void:
 		
 		# Бедные и одинокие более восприимчивы
 		if npc.wealth < 30 and npc.need_system.social < 40:
-			if randf() < 0.2:  # 20% шанс
+			var gs: GURPSSystem = GameManager.gurps_system
+			var recruited := false
+			if gs:
+				var resist = gs.will_check(npc, -2, "Сопротивление культу: " + npc.npc_name)
+				recruited = not resist.success
+				print("🔮 ", gs.describe_result(resist))
+			else:
+				recruited = randf() < 0.2
+			if recruited:
 				add_cultist(npc)
 				return
 

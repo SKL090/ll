@@ -56,15 +56,10 @@ func _create_dialog_ui():
 	vbox.add_child(choices_container)
 
 func show_dialog(npc: BaseNPC) -> void:
-	if is_active:
-		return
-	
 	current_npc = npc
 	is_active = true
 	visible = true
-	
-	# Устанавливаем имя
-	npc_name_label.text = "[b]%s[/b]" % npc.npc_name
+	npc_name_label.text = npc.npc_name
 	
 	# Генерируем реплику
 	_update_dialog_text()
@@ -183,8 +178,8 @@ func _befriend_action() -> void:
 		current_npc.relationship_graph.modify_relationship(
 			current_npc.npc_id, 
 			player_npc.npc_id, 
-			trust_delta: 20.0, 
-			love_delta: 25.0
+			trust_delta = 20.0, 
+			love_delta = 25.0
 		)
 		
 		dialog_text.text = "%s радуется вашей дружбе!\n\n'Спасибо, друг!'" % current_npc.npc_name

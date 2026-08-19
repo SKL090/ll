@@ -26,14 +26,15 @@ func _ready():
 
 ## Проверить, можно ли начать анархию
 func check_for_anarchy() -> void:
-	var mayor = _get_mayor()
-	
-	if mayor == null or not mayor.is_alive:
+	if GameManager.npcs.is_empty():
+		return
+
+	var ruler = _get_mayor()
+	if ruler == null or not ruler.is_alive:
 		if not is_anarchy_active:
 			start_anarchy()
-	else:
-		if is_anarchy_active:
-			end_anarchy()
+	elif is_anarchy_active:
+		end_anarchy()
 
 ## Начать анархию
 func start_anarchy() -> void:
@@ -69,8 +70,8 @@ func end_anarchy() -> void:
 	if temp_leader_id != -1:
 		emit_signal("new_leader_elected", temp_leader_id)
 	
-	# Восстанавливаем порядок
-	EventSystem.increase_order(30.0)
+	if GameManager.event_system:
+		GameManager.event_system.increase_order(30.0)
 	
 	print("✅ Анархия окончена. Новый лидер избран!")
 	
@@ -88,8 +89,8 @@ func _broadcast_mayor_death() -> void:
 			npc.relationship_graph.modify_relationship(
 				npc.npc_id,
 				other.npc_id,
-				trust_delta: -15.0,
-				hate_delta: 10.0
+				trust_delta = -15.0,
+				hate_delta = 10.0
 			)
 		
 		# Добавляем память
@@ -106,7 +107,7 @@ func _elect_temp_leader() -> void:
 	var highest_trust: float = -100.0
 	
 	for npc in GameManager.npcs:
-		if npc.role is MayorRole:
+		if npc.role is MayorRole or npc.role is BaronRole:
 			continue
 		if not npc.is_alive:
 			continue
@@ -163,8 +164,8 @@ func update() -> void:
 
 ## Применить эффекты анархии
 func _apply_anarchy_effects() -> void:
-	# Падение общественного порядка
-	EventSystem.decrease_order(ORDER_DECAY_RATE)
+	if GameManager.event_system:
+		GameManager.event_system.decrease_order(ORDER_DECAY_RATE)
 	
 	# Рост преступности
 	GameManager.crime_rate += CRIME_INCREASE_RATE
@@ -201,10 +202,7 @@ func _recheck_leadership() -> void:
 			_elect_temp_leader()
 
 func _get_mayor() -> BaseNPC:
-	for npc in GameManager.npcs:
-		if npc.role is MayorRole:
-			return npc
-	return null
+	return GameManager.get_ruler()
 
 ## Активна ли анархия
 func is_active() -> bool:

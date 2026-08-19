@@ -8,7 +8,8 @@ extends Role
 # Статус
 var is_corrupt: bool = false  # Ворует ли казначей
 var stolen_amount: float = 0.0
-var corruption_level: float = 0.0  # Уровень коррупции
+var corruption_level: float = 0.0
+var _last_embezzle_day: int = -1
 
 # Настройки
 const CORRUPTION_CHANCE: float = 0.3  # 30% шанс быть коррумпированным
@@ -61,12 +62,13 @@ func _caught_stealing() -> void:
 		owner_npc.relationship_graph.modify_relationship(
 			owner_npc.npc_id,
 			baron.npc_id,
-			trust_delta: -100.0,
-			hate_delta: 50.0
+			trust_delta = -100.0,
+			hate_delta = 50.0
 		)
 		
 		# Барон наказывает
-		baron.role.assign_punishment(owner_npc, "imprisonment") if baron.role else None
+		if baron.role is BaronRole:
+			baron.role.assign_punishment(owner_npc, "imprisonment")
 
 func _get_baron() -> BaseNPC:
 	for npc in GameManager.npcs:

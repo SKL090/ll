@@ -54,6 +54,7 @@ func _setup_dialog_system():
 func _connect_signals():
 	GameManager.connect("crime_committed", _on_crime_committed)
 	GameManager.connect("npc_died", _on_npc_died)
+	TimeSystem.connect("phase_changed", _on_phase_changed)
 	
 	if GameManager.murder_system:
 		GameManager.murder_system.connect("murder_committed", _on_murder_committed)
@@ -74,6 +75,10 @@ func _connect_signals():
 	if GameManager.weather_system:
 		GameManager.weather_system.connect("weather_changed", _on_weather_changed)
 
+	if GameManager.gurps_system:
+		GameManager.gurps_system.connect("critical_success", _on_gurps_crit)
+		GameManager.gurps_system.connect("critical_failure", _on_gurps_fumble)
+
 func _input(event: InputEvent):
 	if event is InputEventKey and event.pressed:
 		match event.keycode:
@@ -81,7 +86,11 @@ func _input(event: InputEvent):
 			KEY_F6: _load_game()
 			KEY_M: _toggle_relationship_map()
 			KEY_R: _restart_game()
-			KEY_ESCAPE: GameManager.toggle_pause()
+			KEY_ESCAPE:
+				if dialog_system and dialog_system.is_active:
+					dialog_system.close_dialog()
+				else:
+					GameManager.toggle_pause()
 	
 	if event is InputEventMouseButton and event.pressed:
 		match event.button_index:
@@ -116,49 +125,47 @@ func deselect_npc():
 	info_panel.visible = false
 
 func update_info_panel():
-	if not selected_npc:
+	if not selected_npc or not is_instance_valid(selected_npc):
+		info_panel.visible = false
 		return
-	
+
+	info_panel.visible = true
 	var info = selected_npc.get_info()
 	
 	var text = ""
-	text += "[b]%s[/b] (%s)\n" % [info["name"], _get_role_name(info["role"])]
+	text += "%s (%s)\n" % [info["name"], _get_role_name(info["role"])]
 	text += "Состояние: %s | Эмоция: %s\n" % [info["state"], info["emotion"]]
 	text += "💰 Богатство: %.0f\n" % [info["wealth"]]
 	text += "❤️ Друзья: %d | 💔 Враги: %d\n" % [info["friends"], info["enemies"]]
-	
-	# Расследование
+	if info.has("gurps_text") and str(info["gurps_text"]) != "":
+		text += "\n" + str(info["gurps_text"]) + "\n"
+
 	if GameManager.investigation_system:
 		var inv = GameManager.investigation_system.get_investigation_about(selected_npc.npc_id)
 		if inv:
-			text += "\n[color=red]⚠️ РАССЛЕДОВАНИЕ[/color]\n"
+			text += "\n⚠️ РАССЛЕДОВАНИЕ\n"
 			text += "Улики: %.0f%%\n" % inv.evidence
-	
-	# Убийство
+
 	if GameManager.murder_system:
 		var plan = GameManager.murder_system.get_plan_against(selected_npc.npc_id)
 		if plan:
-			text += "\n[color=dark_red]🗡️ В ОПАСНОСТИ![/color]\n"
+			text += "\n🗡️ В ОПАСНОСТИ!\n"
 			text += "Ненависть: %.0f%%\n" % plan.hatred
 			text += "Готовность убийцы: %.0f%%" % plan.readiness
-	
-	# Похищение
+
 	if GameManager.crime_system and GameManager.crime_system.is_kidnapped(selected_npc.npc_id):
-		text += "\n[color=orange]👤 ПОХИЩЕН![/color]\n"
-	
-	# Тюрьма
+		text += "\n👤 ПОХИЩЕН!\n"
+
 	if GameManager.prison_system and GameManager.prison_system.is_in_prison(selected_npc.npc_id):
 		var prison_info = GameManager.prison_system.get_prisoner_info(selected_npc.npc_id)
-		text += "\n[color=gray]⛓️ В ТЮРЬМЕ![/color]\n"
+		text += "\n⛓️ В ТЮРЬМЕ!\n"
 		text += "Осталось дней: %d\n" % prison_info.get("days_remaining", 0)
-	
-	# Анархия
+
 	if GameManager.anarchy_system and GameManager.anarchy_system.is_active():
-		text += "\n[color=orange]⚔️ АНАРХИЯ![/color]\n"
+		text += "\n⚔️ АНАРХИЯ!\n"
 		text += "Дней без лидера: %d" % GameManager.anarchy_system.get_days_in_anarchy()
-	
-	# Потребности
-	text += "\n[color=yellow]Потребности:[/color]\n"
+
+	text += "\nПотребности:\n"
 	text += "🍔 Голод: %.0f%%\n" % info["needs"]["hunger"]
 	text += "😴 Энергия: %.0f%%\n" % info["needs"]["energy"]
 	text += "💬 Социальность: %.0f%%" % info["needs"]["social"]
@@ -177,6 +184,12 @@ func _get_role_name(role: String) -> String:
 	match role:
 		"mayor": return "🏛️ Мэр"
 		"sheriff": return "⭐ Шериф"
+		"baron": return "👑 Барон"
+		"bishop": return "⛪ Епископ"
+		"inquisition": return "🔥 Инквизитор"
+		"treasurer": return "💰 Казначей"
+		"garrison": return "⚔️ Солдат"
+		"cultist": return "🔮 Культист"
 		"resident": return "👤 Житель"
 		"merchant": return "🛒 Торговец"
 		"priest": return "⛪ Священник"
@@ -207,7 +220,7 @@ func _add_notification(text: String, color: Color = Color.WHITE, duration: float
 
 func _toggle_relationship_map():
 	relationship_map.toggle()
-	if relationship_map.is_visible:
+	if relationship_map.map_open:
 		_add_notification("🕸️ Карта отношений", Color.CYAN, 1.5)
 
 func _save_game():
@@ -226,10 +239,11 @@ func _load_game():
 		_add_notification("📂 Нет сохранения!", Color.ORANGE, 2.0)
 
 func _restart_game():
-	GameManager.new_game()
 	var city = get_parent() as City
 	if city:
 		city.restart_game()
+	else:
+		GameManager.new_game()
 	_add_notification("🔄 Новая игра!", Color.YELLOW, 2.0)
 
 func update_stats():

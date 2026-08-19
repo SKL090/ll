@@ -9,13 +9,14 @@ extends Role
 var current_investigation: String = ""  # Тип расследования
 var suspects: Array[int] = []
 var evidence_against_heresy: float = 0.0
+var church_influence: float = 50.0
 
-# Настройки
-const HERESY_CHECK_INTERVAL: float = 30.0  # Проверка каждые 30 сек
+const HERESY_CHECK_INTERVAL: float = 30.0
 var heresy_check_timer: float = 0.0
+var _last_interrogation_day: int = -1
 
 func _init():
-	role_type = "inquisitor"
+	role_type = "inquisition"
 	work_start_hour = 8.0
 	work_end_hour = 20.0
 	sleep_start_hour = 22.0
@@ -34,6 +35,10 @@ func update(delta: float) -> void:
 	if heresy_check_timer >= HERESY_CHECK_INTERVAL:
 		heresy_check_timer = 0.0
 		_check_for_heresy()
+
+	if get_current_behavior() == "interrogate" and _last_interrogation_day != GameManager.current_day and suspects.size() > 0:
+		_last_interrogation_day = GameManager.current_day
+		interrogate(suspects[0])
 
 func _check_for_heresy() -> void:
 	# Проверяем культистов иDenunciations
@@ -112,41 +117,47 @@ func interrogate(target_id: int) -> void:
 	if not target:
 		return
 	
-	# Проверяем еретические связи
 	var heretical_actions = 0
-	
 	var memories = target.memory_system.get_memories_of_type(MemorySystem.EventType.SUSPICIOUS)
 	heretical_actions += memories.size()
-	
-	# Проверяем связи с cultists
-	if GameManager.cult_system:
-		if GameManager.cult_system.is_cultist(target_id):
-			heretical_actions += 5
-	
-	# На основе действий - решение
+	if GameManager.cult_system and GameManager.cult_system.is_cultist(target_id):
+		heretical_actions += 5
+
+	var gs: GURPSSystem = GameManager.gurps_system
+	if gs and owner_npc:
+		var contest = gs.quick_contest(
+			owner_npc.gurps.intelligence if owner_npc.gurps else 11,
+			target.gurps.current_will if target.gurps else 10,
+			"Допрос инквизиции: " + owner_npc.npc_name,
+			"Воля еретика: " + target.npc_name
+		)
+		print("🔥 ", gs.describe_result(contest.a))
+		if contest.winner == 1:
+			evidence_against_heresy += 15.0 + float(contest.margin)
+			heretical_actions += 2
+		elif contest.winner == 2:
+			evidence_against_heresy += 4.0
+
 	if heretical_actions >= 5:
-		# Обвинение в ереси
 		_accuse_of_heresy(target)
 	elif heretical_actions >= 2:
-		# Допрос
 		evidence_against_heresy += 10.0
-	else:
-		# Невиновен
-		if target_id in suspects:
-			suspects.erase(target_id)
+	elif target_id in suspects:
+		suspects.erase(target_id)
 
 ## Обвинить в ереси
 func _accuse_of_heresy(target: BaseNPC) -> void:
 	print("🔥 ИНКВИЗИЦИЯ: %s обвинён в ереси!" % target.npc_name)
 	
-	# Шанс сожжения зависит от улик
-	var burn_chance = evidence_against_heresy + 30.0
-	
-	if randf() * 100.0 < burn_chance:
-		# Сожжение на костре!
+	var gs: GURPSSystem = GameManager.gurps_system
+	var burn := evidence_against_heresy >= 50.0
+	if gs and owner_npc:
+		var judgment = gs.iq_check(owner_npc, int((evidence_against_heresy - 50.0) / 10.0), "Приговор: " + target.npc_name)
+		burn = judgment.success
+		print("⚖️ ", gs.describe_result(judgment))
+	if burn:
 		_burn_heretic(target)
 	else:
-		# Тюрьма
 		_send_to_inquisition_prison(target)
 
 ## Сжечь еретика
@@ -165,8 +176,8 @@ func _burn_heretic(target: BaseNPC) -> void:
 		npc.relationship_graph.modify_relationship(
 			npc.npc_id,
 			owner_npc.npc_id,
-			trust_delta: 10.0,
-			hate_delta: -5.0
+			trust_delta = 10.0,
+			hate_delta = -5.0
 		)
 	
 	# Удаляем из подозреваемых
@@ -174,7 +185,7 @@ func _burn_heretic(target: BaseNPC) -> void:
 		suspects.erase(target.npc_id)
 	
 	# NPC умирает
-	target.die(owner_npc)
+	target.die(target)
 	
 	# Увеличиваем влияние церкви
 	church_influence = clamp(church_influence + 10.0, 0.0, 100.0)

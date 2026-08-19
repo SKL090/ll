@@ -72,7 +72,7 @@ func release_from_prison(npc_id: int) -> void:
 				npc.relationship_graph.modify_relationship(
 					npc_id,
 					other.npc_id,
-					trust_delta: -10.0
+					trust_delta = -10.0
 				)
 	
 	emit_signal("prisoner_released", npc_id)
@@ -89,13 +89,23 @@ func update_daily() -> void:
 		# Уменьшаем срок
 		prisoner["days_remaining"] -= 1
 		
-		# Проверяем досрочное освобождение
-		if randf() < RELEASE_EARLY_CHANCE and prisoner["days_remaining"] > 2:
+		var inmate = GameManager.get_npc_by_id(npc_id)
+		var gs: GURPSSystem = GameManager.gurps_system
+		if gs and inmate and prisoner["days_remaining"] > 2:
+			var parole = gs.iq_check(inmate, -4, "Досрочное: " + inmate.npc_name)
+			if parole.success:
+				to_release.append(npc_id)
+				continue
+		elif randf() < RELEASE_EARLY_CHANCE and prisoner["days_remaining"] > 2:
 			to_release.append(npc_id)
 			continue
-		
-		# Проверяем побег
-		if randf() < ESCAPE_CHANCE:
+
+		if gs and inmate:
+			var escape_roll = gs.dx_check(inmate, -4, "Побег: " + inmate.npc_name)
+			if escape_roll.success:
+				to_escape.append(npc_id)
+				continue
+		elif randf() < ESCAPE_CHANCE:
 			to_escape.append(npc_id)
 			continue
 		
@@ -130,7 +140,7 @@ func escape_prison(npc_id: int) -> void:
 			npc.relationship_graph.modify_relationship(
 				npc.npc_id,
 				other.npc_id,
-				trust_delta: -15.0
+				trust_delta = -15.0
 			)
 		
 		# Шериф начинает охоту

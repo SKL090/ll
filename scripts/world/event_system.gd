@@ -170,15 +170,17 @@ func _apply_riot_effects() -> void:
 	_update_city_status()
 
 func _apply_tax_effects() -> void:
-	# Мэр собирает налоги
-	var tax_amount = 10.0 * float(GameManager.npcs.size() - 1)  # Все кроме мэра
-	
+	# Правитель собирает налоги: фиксированная пошлина с каждого жителя
+	var tax_amount = 10.0
+
 	for npc in GameManager.npcs:
-		if npc.role is MayorRole:
+		if not is_instance_valid(npc) or not npc.is_alive:
 			continue
-		if npc.wealth >= tax_amount:
-			npc.wealth -= tax_amount
-			GameManager.city_treasury += tax_amount
+		if npc.role is MayorRole or npc.role is BaronRole:
+			continue
+		var paid = min(tax_amount, max(npc.wealth, 0.0))
+		npc.wealth -= paid
+		GameManager.city_treasury += paid
 
 func _apply_meeting_effects() -> void:
 	# Жители обсуждают мэра
@@ -189,7 +191,7 @@ func _apply_meeting_effects() -> void:
 				npc.relationship_graph.modify_relationship(
 					npc.npc_id,
 					mayor.npc_id,
-					trust_delta: -5.0
+					trust_delta = -5.0
 				)
 
 ## Обновить события (вызывается ежедневно)
@@ -223,10 +225,7 @@ func _has_event_type(type: EventType) -> bool:
 	return false
 
 func _get_mayor() -> BaseNPC:
-	for npc in GameManager.npcs:
-		if npc.role is MayorRole:
-			return npc
-	return null
+	return GameManager.get_ruler()
 
 ## Увеличить порядок
 func increase_order(amount: float) -> void:

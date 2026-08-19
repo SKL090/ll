@@ -94,7 +94,8 @@ func _create_save_data() -> Dictionary:
 				"hunger": npc.need_system.hunger,
 				"energy": npc.need_system.energy,
 				"social": npc.need_system.social,
-			}
+			},
+			"gurps": npc.gurps.get_data() if npc.gurps else {},
 		}
 		save_data["npcs"].append(npc_data)
 		
@@ -105,8 +106,8 @@ func _create_save_data() -> Dictionary:
 		save_data["memories"][str(npc.npc_id)] = _get_npc_memories(npc)
 	
 	# Сохраняем активные события
-	if EventSystem:
-		for event in EventSystem.get_active_events():
+	if GameManager.event_system:
+		for event in GameManager.event_system.get_active_events():
 			var event_data = {
 				"type": event.type,
 				"name": event.name,
@@ -183,7 +184,7 @@ func _apply_save_data(data: Dictionary) -> void:
 		_restore_npcs(data["npcs"], data)
 	
 	# Восстанавливаем события
-	if data.has("events") and EventSystem:
+	if data.has("events") and GameManager.event_system:
 		# Простые события восстанавливаются автоматически через check_for_events
 		pass
 
@@ -229,6 +230,9 @@ func _restore_npcs(npc_data_list: Array, full_data: Dictionary) -> void:
 					npc.need_system.energy = needs.get("energy", 100.0)
 					npc.need_system.social = needs.get("social", 60.0)
 				
+				if npc_data.has("gurps") and npc.gurps:
+					npc.gurps.apply_data(npc_data["gurps"])
+					npc.apply_move_from_gurps()
 				if npc_data.has("is_alive"):
 					npc.is_alive = npc_data["is_alive"]
 					if not npc.is_alive:

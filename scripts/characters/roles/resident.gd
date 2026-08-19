@@ -36,9 +36,13 @@ func initialize(npc: BaseNPC) -> void:
 	
 	# Устанавливаем место работы
 	if resident_type == ResidentType.THIEF:
-		work_position = shop_position  # Воры работают в магазине днём (прикрытие)
+		work_position = shop_position
+		if owner_npc.gurps:
+			owner_npc.gurps.dexterity += 1
+			owner_npc.gurps.recalculate_all()
+			owner_npc.gurps.full_restore()
+			owner_npc.apply_move_from_gurps()
 	else:
-		# Случайная работа
 		work_position = shop_position if randf() > 0.5 else farm_position
 
 func update(delta: float) -> void:
@@ -149,9 +153,16 @@ func attempt_theft() -> bool:
 	if target == null:
 		return false
 	
-	# Проверяем шанс успеха (40%)
-	var success = randf() < 0.4
-	
+	var gs: GURPSSystem = GameManager.gurps_system
+	var success := false
+	if gs:
+		var steal_mod := 2 if TimeSystem.is_nighttime() else 0
+		var steal = gs.stealth_check(owner_npc, steal_mod)
+		print("🕵️ ", gs.describe_result(steal))
+		success = steal.success
+	else:
+		success = randf() < 0.4
+
 	if success:
 		# Кража удалась!
 		var stolen_amount = randf_range(5.0, 15.0)
@@ -169,14 +180,16 @@ func attempt_theft() -> bool:
 		)
 		
 		print("💰 ", owner_npc.npc_name, " украл ", stolen_amount, " у ", target.npc_name)
-		return true
-	else:
-		# Попытка не удалась, возможно заметили
-		if randf() < 0.5:  # 50% шанс что заметили
-			# Добавляем подозрительную память свидетелям
+		if gs and gs.perception_check(target, 2, "Заметил кражу: " + target.npc_name).success:
 			_add_suspicion(target)
-		
-		return false
+		return true
+
+	if gs:
+		if gs.perception_check(target, 0, "Сорванная кража: " + target.npc_name).success:
+			_add_suspicion(target)
+	elif randf() < 0.5:
+		_add_suspicion(target)
+	return false
 
 func _find_theft_target() -> BaseNPC:
 	var best_target: BaseNPC = null

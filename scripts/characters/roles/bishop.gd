@@ -32,7 +32,8 @@ func update(delta: float) -> void:
 	faith_level = clamp(faith_level - FAITH_DECAY * delta, 0.0, 100.0)
 	
 	# Церковь увеличивает порядок
-	EventSystem.increase_order(MORALE_BONUS * delta * 0.1) if EventSystem else None
+	if GameManager.event_system:
+		GameManager.event_system.increase_order(MORALE_BONUS * delta * 0.1)
 
 func get_current_behavior() -> String:
 	var time = TimeSystem.current_time
@@ -90,7 +91,7 @@ func conduct_mass() -> void:
 		npc.relationship_graph.modify_relationship(
 			npc.npc_id,
 			owner_npc.npc_id,
-			trust_delta: 3.0
+			trust_delta = 3.0
 		)
 
 ## Снять проклятие с еретика (благословение)
@@ -98,8 +99,8 @@ func absolve_sinner(npc: BaseNPC) -> void:
 	npc.relationship_graph.modify_relationship(
 		npc.npc_id,
 		owner_npc.npc_id,
-		trust_delta: 30.0,
-		love_delta: 20.0
+		trust_delta = 30.0,
+		love_delta = 20.0
 	)
 	
 	# Увеличиваем влияние церкви

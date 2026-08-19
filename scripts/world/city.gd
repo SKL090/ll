@@ -81,9 +81,10 @@ func spawn_npc(role_type: String, position: Vector2, custom_name: String = "") -
 	var npc_name = custom_name if custom_name != "" else "NPC"
 	var color = NPC_COLORS.get(role_type, Color.WHITE)
 	
+	npc.position = position
+	npcs_container.add_child(npc)
 	npc.initialize(npc_id, npc_name, color, role_type)
-	npc.global_position = position
-	
+
 	# Устанавливаем позиции для ролей
 	if npc.role:
 		match role_type:
@@ -111,8 +112,6 @@ func spawn_npc(role_type: String, position: Vector2, custom_name: String = "") -
 			"resident":
 				_setup_resident_positions(npc, custom_name)
 
-	npcs_container.add_child(npc)
-	
 	print("👤 %s (%s) создан" % [npc_name, role_type])
 	
 	return npc
@@ -145,8 +144,6 @@ func _on_phase_changed(phase: TimeSystem.TimePhase) -> void:
 	phase_label.text = TimeSystem.get_phase_description()
 
 func _on_npc_died(npc: BaseNPC, killer: BaseNPC) -> void:
-	GameManager.unsolved_murders += 1
-	
 	var killer_name = killer.npc_name if killer else "неизвестным"
 	print("💀 %s был убит %s" % [npc.npc_name, killer_name])
 
@@ -163,7 +160,9 @@ func get_npc_at_position(pos: Vector2) -> BaseNPC:
 	var space = get_world_2d().direct_space_state
 	var query = PhysicsPointQueryParameters2D.new()
 	query.position = pos
-	
+	query.collide_with_bodies = true
+	query.collision_mask = 2
+
 	var results = space.intersect_point(query, 10)
 	
 	for result in results:
@@ -182,3 +181,6 @@ func restart_game() -> void:
 	await get_tree().process_frame
 	next_npc_id = 1
 	spawn_all_npcs()
+	await get_tree().create_timer(0.4).timeout
+	if GameManager.cult_system:
+		GameManager.cult_system.initialize_cult()
