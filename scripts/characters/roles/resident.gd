@@ -132,15 +132,17 @@ func _get_theft_target() -> Vector2:
 	return target.global_position
 
 func _get_social_location() -> Vector2:
-	# Жители общаются в центре или у магазина
+	# Жители общаются на площади или у магазина
 	var locations = [
-		Vector2(500, 350),
-		Vector2(450, 380),
-		Vector2(550, 370),
+		_cell(31, 20),
+		_cell(40, 29),
+		_cell(30, 19),
 	]
 	return locations[randi() % locations.size()]
 
 func _get_wander_location() -> Vector2:
+	if GameManager.world_map:
+		return GameManager.world_map.random_walkable_position()
 	return Vector2(randf_range(100, 700), randf_range(150, 450))
 
 ## Попытка кражи

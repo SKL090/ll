@@ -24,8 +24,9 @@ func _init():
 
 func initialize(npc: BaseNPC) -> void:
 	super.initialize(npc)
+	inquisition_office = _cell(44, 17)
 	work_position = inquisition_office
-	home_position = Vector2(280, 380)
+	home_position = _cell(42, 16)
 
 func update(delta: float) -> void:
 	super.update(delta)
@@ -93,10 +94,10 @@ func get_target_position() -> Vector2:
 
 func _get_patrol_point() -> Vector2:
 	var points = [
-		Vector2(500, 350),  # Центр
-		Vector2(600, 300),  # Барон
-		Vector2(550, 400),  # Церковь
-		Vector2(700, 450),  # Окраина
+		_cell(31, 20),  # Площадь
+		_cell(17, 8),   # Замок
+		_cell(44, 8),   # Собор
+		_cell(55, 40),  # Окраина
 	]
 	return points[randi() % points.size()]
 

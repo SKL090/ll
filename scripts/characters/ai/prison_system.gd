@@ -9,7 +9,6 @@ signal prisoner_sentenced(criminal_id: int, days: int)
 var prisoners: Dictionary = {}  # npc_id -> {days_remaining: int, crime: String, cell: int}
 
 # Константы
-const PRISON_LOCATION: Vector2 = Vector2(260, 350)  # Рядом с участком
 const ESCAPE_CHANCE: float = 0.05  # Шанс побега в день
 const RELEASE_EARLY_CHANCE: float = 0.1  # Шанс досрочного освобождения
 
@@ -128,7 +127,10 @@ func escape_prison(npc_id: int) -> void:
 	var npc = GameManager.get_npc_by_id(npc_id)
 	if npc:
 		# Убегает на окраину
-		npc.global_position = Vector2(900, 500)
+		if GameManager.world_map:
+			npc.global_position = GameManager.world_map.cell_center_world(Vector2i(57, 41))
+		else:
+			npc.global_position = Vector2(900, 500)
 		npc.set_physics_process(true)
 		
 		# Все относятся хуже
@@ -146,9 +148,18 @@ func escape_prison(npc_id: int) -> void:
 	
 	print("🏃💨 %s сбежал из тюрьмы!" % prisoner_name)
 
-## Получить позицию камеры
+## Получить позицию камеры (в новом тайловом здании тюрьмы)
 func _get_cell_position(cell_number: int) -> Vector2:
-	# Размещаем камеры в здании тюрьмы
+	if GameManager.world_map and GameManager.world_map.building_rects.has("prison"):
+		var rect: Rect2i = GameManager.world_map.building_rects["prison"]
+		var inner := Rect2i(rect.position + Vector2i(1, 1), rect.size - Vector2i(2, 2))
+		var cells: Array[Vector2i] = []
+		for y in range(inner.position.y, inner.end.y):
+			for x in range(inner.position.x, inner.end.x):
+				cells.append(Vector2i(x, y))
+		if cells.size() > 0:
+			var idx: int = clampi(cell_number - 1, 0, cells.size() - 1)
+			return GameManager.world_map.cell_center_world(cells[idx])
 	return Vector2(240 + (cell_number - 1) * 25, 340)
 
 ## Проверить, в тюрьме ли NPC

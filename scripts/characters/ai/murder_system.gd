@@ -172,6 +172,8 @@ func _maybe_notice_attempt(planner: BaseNPC, target: BaseNPC, gs: GURPSSystem) -
 				continue
 			if npc.global_position.distance_to(target.global_position) > 180.0:
 				continue
+			if GameManager.world_map and not GameManager.world_map.has_line_of_sight(npc.global_position, target.global_position):
+				continue
 			if gs.perception_check(npc, -2, "Свидетель нападения: " + npc.npc_name).success:
 				_notify_sheriff_about_attempt(planner, target)
 				break
@@ -235,6 +237,9 @@ func _create_witness_memories(killer: BaseNPC, victim: BaseNPC) -> void:
 		
 		var dist = npc.global_position.distance_to(victim.global_position)
 		if dist > 220.0:
+			continue
+		# свидетелем может стать только тот, кто ВИДИТ место преступления
+		if GameManager.world_map and not GameManager.world_map.has_line_of_sight(npc.global_position, victim.global_position):
 			continue
 		var gs: GURPSSystem = GameManager.gurps_system
 		if gs:

@@ -14,7 +14,7 @@ var inventory: Dictionary = {
 
 # Цены
 const PRICES: Dictionary = {
-	"food": 10,
+	"food": 3,
 	"tools": 25,
 	"luxury": 50,
 }
@@ -31,14 +31,18 @@ func _init():
 
 func initialize(npc: BaseNPC) -> void:
 	super.initialize(npc)
+	shop_position = _cell(42, 29)
 	work_position = shop_position
-	home_position = Vector2(460, 440)
+	home_position = _cell(40, 28)
 
 func update(delta: float) -> void:
 	super.update(delta)
 	
-	# Торговец зарабатывает когда другие покупают
-	# Это упрощённая версия
+	# Торговец ест из собственных запасов, если голоден
+	if owner_npc and owner_npc.food <= 0.0 and owner_npc.need_system.hunger < 50.0:
+		if int(inventory.get("food", 0)) > 0:
+			inventory["food"] = int(inventory["food"]) - 1
+			owner_npc.food += 3.0
 
 func get_current_behavior() -> String:
 	var time = TimeSystem.current_time
@@ -60,7 +64,7 @@ func get_target_position() -> Vector2:
 		"sleep":
 			return home_position
 		"buy_food":
-			return Vector2(150, 175)  # На ферму за едой
+			return _cell(5, 6)  # На ферму за едой
 	return home_position
 
 ## Продать товар
@@ -76,6 +80,16 @@ func sell_item(item: String, buyer: BaseNPC) -> bool:
 	buyer.wealth -= PRICES[item]
 	owner_npc.wealth += PRICES[item]
 	daily_income += PRICES[item]
+	
+	# Товар переходит покупателю
+	match item:
+		"food":
+			buyer.food += 5.0  # еды хватает на несколько трапез
+			print("🛒 %s купил еду у %s за %.0f" % [buyer.npc_name, owner_npc.npc_name, PRICES[item]])
+		"tools":
+			buyer.need_system.safety = clamp(buyer.need_system.safety + 10.0, 0.0, 100.0)
+		"luxury":
+			buyer.need_system.social = clamp(buyer.need_system.social + 10.0, 0.0, 100.0)
 	
 	# Отношения улучшаются
 	owner_npc.relationship_graph.modify_relationship(owner_npc.npc_id, buyer.npc_id, 5.0, 3.0)

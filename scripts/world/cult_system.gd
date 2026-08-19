@@ -49,10 +49,8 @@ func _convert_to_cultist(npc: BaseNPC) -> void:
 	cultist_role.initialize(npc)
 	npc.role = cultist_role
 	
-	# Изменяем цвет (скрытый тёмный)
-	npc.base_color = Color(0.3, 0.2, 0.3)
-	if npc.sprite:
-		npc.sprite.modulate = npc.base_color
+	# Культист переодевается (фиолетовая куртка)
+	npc.apply_wardrobe()
 
 ## Убрать cultist
 func remove_cultist(npc_id: int) -> void:

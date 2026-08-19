@@ -8,6 +8,7 @@ extends CanvasLayer
 # Дополнительные элементы
 var relationship_map: RelationshipMap
 var dialog_system: DialogSystem
+var gray_cardinal: GrayCardinal
 
 # Выбранный NPC
 var selected_npc: BaseNPC = null
@@ -22,6 +23,7 @@ func _ready():
 	_setup_relationship_map()
 	_setup_event_log()
 	_setup_dialog_system()
+	_setup_gray_cardinal()
 	_connect_signals()
 
 func _setup_relationship_map():
@@ -50,6 +52,11 @@ func _setup_event_log():
 func _setup_dialog_system():
 	dialog_system = DialogSystem.new()
 	add_child(dialog_system)
+
+
+func _setup_gray_cardinal():
+	gray_cardinal = GrayCardinal.new()
+	add_child(gray_cardinal)
 
 func _connect_signals():
 	GameManager.connect("crime_committed", _on_crime_committed)
@@ -86,8 +93,12 @@ func _input(event: InputEvent):
 			KEY_F6: _load_game()
 			KEY_M: _toggle_relationship_map()
 			KEY_R: _restart_game()
+			KEY_F: _ignite_under_cursor()
 			KEY_ESCAPE:
-				if dialog_system and dialog_system.is_active:
+				if gray_cardinal and gray_cardinal.visible:
+					gray_cardinal.hide_panel()
+					deselect_npc()
+				elif dialog_system and dialog_system.is_active:
 					dialog_system.close_dialog()
 				else:
 					GameManager.toggle_pause()
@@ -101,12 +112,22 @@ func _handle_left_click(pos: Vector2):
 	var city = get_parent() as City
 	if not city:
 		return
-	
-	if pos.y > 550:
+
+	# зоны интерфейса — не выбираем NPC
+	if pos.y > 430 and pos.x < 380:
+		return  # инфо-панель
+	if pos.y > 520:
 		return
-	
-	var npc = city.get_npc_at_position(pos)
-	
+
+	# экранные координаты -> мировые (с учётом камеры)
+	var world_pos = get_viewport().get_canvas_transform().affine_inverse() * pos
+
+	# если панель кардинала ждёт выбора цели/места — отдаём клик ей
+	if gray_cardinal and gray_cardinal.handle_click(world_pos):
+		return
+
+	var npc = city.get_npc_at_position(world_pos)
+
 	if npc:
 		show_npc_dialog(npc)
 	else:
@@ -115,14 +136,24 @@ func _handle_left_click(pos: Vector2):
 func _handle_right_click():
 	GameManager.toggle_pause()
 
+
+func _ignite_under_cursor():
+	if GameManager.world_map == null:
+		return
+	var world_pos = get_viewport().get_canvas_transform().affine_inverse() * get_viewport().get_mouse_position()
+	GameManager.world_map.ignite_at(world_pos)
+	_add_notification("🔥 Поджог!", Color.RED, 1.5)
+
 func show_npc_dialog(npc: BaseNPC):
 	selected_npc = npc
-	dialog_system.show_dialog(npc)
+	gray_cardinal.show_for(npc)
 	update_info_panel()
 
 func deselect_npc():
 	selected_npc = null
 	info_panel.visible = false
+	if gray_cardinal:
+		gray_cardinal.hide_panel()
 
 func update_info_panel():
 	if not selected_npc or not is_instance_valid(selected_npc):
@@ -136,6 +167,9 @@ func update_info_panel():
 	text += "%s (%s)\n" % [info["name"], _get_role_name(info["role"])]
 	text += "Состояние: %s | Эмоция: %s\n" % [info["state"], info["emotion"]]
 	text += "💰 Богатство: %.0f\n" % [info["wealth"]]
+	text += "🍞 Еда: %.1f | 👁 Видит: %d\n" % [info["food"], info["visible"]]
+	if str(info.get("order", "")) != "":
+		text += "🎭 Приказ: %s\n" % info["order"]
 	text += "❤️ Друзья: %d | 💔 Враги: %d\n" % [info["friends"], info["enemies"]]
 	if info.has("gurps_text") and str(info["gurps_text"]) != "":
 		text += "\n" + str(info["gurps_text"]) + "\n"
@@ -259,17 +293,17 @@ func update_stats():
 	if order < 40: status_color = Color(0.9, 0.5, 0.2)
 	if order < 20: status_color = Color(0.9, 0.2, 0.2)
 	
-	var order_label_node = get_parent().get_node_or_null("OrderLabel")
+	var order_label_node = get_parent().get_node_or_null("HUDTop/OrderLabel")
 	if order_label_node:
 		order_label_node.text = "📊 Порядок: %.0f%%" % order
 		order_label_node.add_theme_color_override("font_color", status_color)
 	
-	var stats_label_node = get_parent().get_node_or_null("StatsLabel")
+	var stats_label_node = get_parent().get_node_or_null("HUDTop/StatsLabel")
 	if stats_label_node:
 		stats_label_node.text = "👥 %d | 🚨 %.0f%%" % [stats["alive"], stats["crime_rate"]]
 	
 	# Обновляем погоду
-	var weather_label = get_parent().get_node_or_null("WeatherLabel")
+	var weather_label = get_parent().get_node_or_null("HUDTop/WeatherLabel")
 	if weather_label and GameManager.weather_system:
 		weather_label.text = GameManager.weather_system.get_weather_string()
 
@@ -341,7 +375,7 @@ func _on_building_burned(building_name: String):
 	_add_event("🔥 Здание '%s' горит!" % building_name, Color.RED)
 
 func _on_weather_changed(weather: WeatherSystem.WeatherType):
-	var weather_label = get_parent().get_node_or_null("WeatherLabel")
+	var weather_label = get_parent().get_node_or_null("HUDTop/WeatherLabel")
 	if weather_label and GameManager.weather_system:
 		weather_label.text = GameManager.weather_system.get_weather_string()
 	_add_event("🌤️ Погода: %s" % GameManager.weather_system.get_weather_string(), Color.CYAN)

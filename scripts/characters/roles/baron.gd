@@ -23,6 +23,8 @@ func _init():
 
 func initialize(npc: BaseNPC) -> void:
 	super.initialize(npc)
+	castle_position = _cell(16, 7)
+	throne_room = _cell(17, 8)
 	work_position = throne_room
 	home_position = castle_position
 	
@@ -97,7 +99,7 @@ func get_target_position() -> Vector2:
 		"audience":
 			return throne_room
 		"meet_treasurer":
-			return Vector2(520, 250)  # Рядом с казначеем
+			return _cell(19, 9)  # Рядом с казначеем
 		"lunch":
 			return castle_position
 		"admin_work":
@@ -110,9 +112,9 @@ func get_target_position() -> Vector2:
 
 func _get_entertainment_location() -> Vector2:
 	var locations = [
-		Vector2(500, 350),
-		Vector2(550, 400),
-		Vector2(480, 380),
+		_cell(31, 20),
+		_cell(30, 19),
+		_cell(32, 21),
 	]
 	return locations[randi() % locations.size()]
 

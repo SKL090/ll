@@ -14,8 +14,9 @@ func _init():
 
 func initialize(npc: BaseNPC) -> void:
 	super.initialize(npc)
+	town_hall_position = _cell(17, 8)
 	work_position = town_hall_position
-	home_position = Vector2(600, 250)  # Дом мэра (большой, красивый)
+	home_position = _cell(16, 7)  # Дом мэра
 
 func update(delta: float) -> void:
 	super.update(delta)
@@ -57,7 +58,7 @@ func get_target_position() -> Vector2:
 		"office_work":
 			return town_hall_position  # Работает в ратуше
 		"lunch":
-			return Vector2(550, 320)  # Обед в центре
+			return _cell(31, 20)  # Обед в центре
 		"social_event":
 			return _get_social_location()
 		"sleep":
@@ -67,9 +68,9 @@ func get_target_position() -> Vector2:
 func _get_social_location() -> Vector2:
 	# Мэр ходит по городу, показывая себя
 	var locations = [
-		Vector2(400, 300),
-		Vector2(600, 400),
-		Vector2(500, 250),
+		_cell(31, 20),
+		_cell(30, 19),
+		_cell(32, 21),
 	]
 	return locations[randi() % locations.size()]
 

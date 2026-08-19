@@ -22,8 +22,9 @@ func _init():
 
 func initialize(npc: BaseNPC) -> void:
 	super.initialize(npc)
+	church_position = _cell(44, 8)
 	work_position = church_position
-	home_position = Vector2(540, 420)
+	home_position = _cell(41, 7)
 
 func update(delta: float) -> void:
 	super.update(delta)
@@ -68,12 +69,9 @@ func get_target_position() -> Vector2:
 
 func _get_random_house() -> Vector2:
 	var houses = [
-		Vector2(685, 410),
-		Vector2(785, 410),
-		Vector2(685, 510),
-		Vector2(785, 510),
-		Vector2(885, 410),
-		Vector2(885, 510),
+		_cell(12, 28), _cell(14, 28),
+		_cell(50, 28), _cell(52, 28),
+		_cell(40, 35), _cell(48, 35),
 	]
 	return houses[randi() % houses.size()]
 

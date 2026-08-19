@@ -2,26 +2,32 @@
 
 [ext_resource type="Script" path="res://scripts/characters/base_npc.gd" id="1_npc"]
 
-[sub_resource type="CircleShape2D" id="CircleShape2D_1"]
-radius = 12.0
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_1"]
+size = Vector2(18, 40)
 
 [node name="NPC" type="CharacterBody2D"]
 collision_layer = 2
-collision_mask = 0
+collision_mask = 1
+z_index = 1
 script = ExtResource("1_npc")
 
-[node name="Sprite" type="Sprite2D" parent="."]
-modulate = Color(0.8, 0.6, 0.4, 1)
-scale = Vector2(24, 24)
-
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
-shape = SubResource("CircleShape2D_1")
+position = Vector2(0, -12)
+shape = SubResource("RectangleShape2D_1")
+
+[node name="Puppet" type="Node2D" parent="."]
+
+[node name="Body" type="Sprite2D" parent="Puppet"]
+position = Vector2(0, 2)
+
+[node name="Head" type="Sprite2D" parent="Puppet"]
+position = Vector2(0, -15)
 
 [node name="Label" type="Label" parent="."]
 offset_left = -30.0
-offset_top = -40.0
+offset_top = -52.0
 offset_right = 30.0
-offset_bottom = -20.0
+offset_bottom = -36.0
 theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_font_sizes/font_size = 12
 horizontal_alignment = 1
@@ -29,9 +35,9 @@ text = "NPC"
 
 [node name="StateLabel" type="Label" parent="."]
 offset_left = -30.0
-offset_top = -25.0
+offset_top = -34.0
 offset_right = 30.0
-offset_bottom = -5.0
+offset_bottom = -20.0
 theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
 theme_override_font_sizes/font_size = 10
 horizontal_alignment = 1

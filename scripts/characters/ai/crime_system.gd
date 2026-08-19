@@ -178,6 +178,31 @@ func attempt_arson(criminal: BaseNPC, target: Node2D, building_name: String = "�
 	
 	return true
 
+
+## Поджог на новой тайловой карте: поджигает горючий тайл рядом с точкой
+func attempt_arson_at(criminal: BaseNPC, pos: Vector2) -> bool:
+	if GameManager.world_map == null:
+		return false
+
+	var center := GameManager.world_map.world_to_cell(pos)
+	for radius in range(0, 5):
+		for dy in range(-radius, radius + 1):
+			for dx in range(-radius, radius + 1):
+				var cell := center + Vector2i(dx, dy)
+				var mat: String = GameManager.world_map.cell_mat.get(cell, "")
+				if not GameManager.world_map.is_flammable_mat(mat):
+					continue
+				# не поджигаем траву при поджоге здания
+				if mat == "grass":
+					continue
+				GameManager.world_map.ignite(cell)
+				print("🔥 %s поджёг %s!" % [criminal.npc_name, mat])
+				emit_signal("crime_committed", "arson", criminal, GameManager.world_map)
+				if GameManager.murder_system:
+					GameManager.murder_system.add_trigger_event(criminal.npc_id, 20.0)
+				return true
+	return false
+
 ## Попытка похищения
 func attempt_kidnapping(criminal: BaseNPC, target: BaseNPC) -> bool:
 	# Проверяем условия

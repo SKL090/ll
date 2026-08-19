@@ -9,6 +9,8 @@ signal npc_died(npc: BaseNPC, killer: BaseNPC)
 signal crime_committed(crime_type: String, criminal: BaseNPC, victim: BaseNPC)
 signal npc_created(npc: BaseNPC)
 
+var world_map = null  # WorldMap (ссылка ставится городом)
+
 var investigation_system: InvestigationSystem
 var murder_system: MurderSystem
 var event_system: EventSystem
@@ -24,6 +26,7 @@ var gurps_system: GURPSSystem
 var current_day: int = 1
 var is_paused: bool = false
 var game_speed: float = 1.0
+var influence: float = 100.0   # «влияние» серого кардинала (ресурс на шёпот)
 
 var npcs: Array[BaseNPC] = []
 
@@ -64,6 +67,7 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if is_paused:
 		return
+	influence = min(100.0, influence + 5.0 * delta)
 	if anarchy_system:
 		anarchy_system.check_for_anarchy()
 	if crime_system:
@@ -148,6 +152,12 @@ func advance_day() -> void:
 			npc.need_system.daily_reset()
 		if is_instance_valid(npc) and npc.is_alive and npc.gurps:
 			_daily_heal(npc)
+		# Зарплата: жители зарабатывают днём, чтобы было на что покупать еду
+		if is_instance_valid(npc) and npc.is_alive and npc.role is ResidentRole:
+			npc.wealth += 15.0
+		# Торговец пополняет запасы еды
+		if is_instance_valid(npc) and npc.is_alive and npc.role is MerchantRole:
+			npc.role.inventory["food"] = max(int(npc.role.inventory.get("food", 0)), 8)
 
 	if event_system and anarchy_system and not anarchy_system.is_active():
 		event_system.increase_order(2.0)
@@ -184,6 +194,7 @@ func new_game() -> void:
 	crime_rate = 0.0
 	unsolved_murders = 0
 	is_paused = false
+	influence = 100.0
 
 	TimeSystem.current_time = 6.0
 	TimeSystem.current_day = 1

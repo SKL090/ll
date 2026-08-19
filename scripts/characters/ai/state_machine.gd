@@ -29,6 +29,12 @@ var min_state_duration: float = 1.0
 var target_position: Vector2 = Vector2.ZERO
 var target_node: Node2D = null
 
+# Путь по тайловой карте
+var path: Array[Vector2] = []
+var path_index: int = 0
+var _stuck_time: float = 0.0
+var _last_pos: Vector2 = Vector2.ZERO
+
 
 func _init(p_owner: Node2D = null) -> void:
 	owner_npc = p_owner
@@ -101,20 +107,60 @@ func _process_idle(_delta: float) -> void:
 
 
 func _process_walking(_delta: float) -> void:
+	if path.size() > 0 and path_index < path.size():
+		var way: Vector2 = path[path_index]
+		if owner_npc.global_position.distance_to(way) < 8.0:
+			path_index += 1
+			if path_index >= path.size():
+				_on_target_reached()
+				return
+			way = path[path_index]
+
+		_move_towards(way)
+
+		# открываем двери на пути
+		if owner_npc is BaseNPC and GameManager.world_map:
+			GameManager.world_map.open_door_near(owner_npc.global_position)
+
+		_check_stuck()
+		return
+
+	# Запасной вариант — движение напрямую
 	if target_position == Vector2.ZERO:
 		change_state(State.IDLE)
 		return
 
-	var direction = target_position - owner_npc.global_position
-	var distance = direction.length()
-
+	var distance: float = owner_npc.global_position.distance_to(target_position)
 	if distance < 8.0:
 		_on_target_reached()
 		return
 
+	_move_towards(target_position)
+	if owner_npc is BaseNPC and GameManager.world_map:
+		GameManager.world_map.open_door_near(owner_npc.global_position)
+
+
+func _move_towards(point: Vector2) -> void:
+	var direction: Vector2 = point - owner_npc.global_position
 	direction = direction.normalized()
 	owner_npc.velocity = direction * owner_npc.move_speed
 	owner_npc.move_and_slide()
+
+
+func _check_stuck() -> void:
+	var moved: float = owner_npc.global_position.distance_to(_last_pos)
+	if moved < 2.0:
+		_stuck_time += get_physics_process_delta_time()
+	else:
+		_stuck_time = 0.0
+	_last_pos = owner_npc.global_position
+
+	if _stuck_time > 1.5:
+		_stuck_time = 0.0
+		# пересчитываем путь (стены могли измениться из-за огня)
+		if owner_npc is BaseNPC and GameManager.world_map:
+			path = GameManager.world_map.find_path_world(owner_npc.global_position, target_position)
+			path_index = 0 if path.size() == 0 else 1
 
 
 func _process_working(_delta: float) -> void:
@@ -123,8 +169,17 @@ func _process_working(_delta: float) -> void:
 
 
 func _process_eating(delta: float) -> void:
+	var npc: BaseNPC = owner_npc as BaseNPC
+	if npc == null:
+		change_state(State.IDLE)
+		return
+	# еда кончилась — идём покупать
+	if npc.food <= 0.0:
+		change_state(State.IDLE)
+		return
+	npc.food = max(0.0, npc.food - 1.0 * delta)
 	_restore_need("hunger", delta)
-	if state_timer > 5.0 or _need_value("hunger") >= 85.0:
+	if state_timer > 5.0 or _need_value("hunger") >= 90.0 or npc.food <= 0.0:
 		change_state(State.IDLE)
 
 
@@ -136,6 +191,14 @@ func _process_sleeping(delta: float) -> void:
 
 func _process_socializing(delta: float) -> void:
 	_restore_need("social", delta)
+	# общаемся с соседом — быстрее, если рядом есть другой NPC
+	if owner_npc is BaseNPC:
+		for other in GameManager.npcs:
+			if other == owner_npc or not is_instance_valid(other) or not other.is_alive:
+				continue
+			if owner_npc.global_position.distance_to(other.global_position) < 48.0:
+				_restore_need("social", delta * 0.5)
+				break
 	if state_timer > 4.0 or _need_value("social") >= 80.0:
 		change_state(State.IDLE)
 
@@ -166,6 +229,13 @@ func _process_arresting(_delta: float) -> void:
 
 func move_to(position: Vector2) -> void:
 	target_position = position
+	path = []
+	path_index = 0
+	_stuck_time = 0.0
+	if owner_npc is BaseNPC and GameManager.world_map:
+		path = GameManager.world_map.find_path_world(owner_npc.global_position, position)
+		if path.size() > 1:
+			path_index = 1  # нулевой узел — текущая клетка
 	change_state(State.WALKING)
 
 
@@ -173,13 +243,14 @@ func move_to_node(node: Node2D) -> void:
 	if node == null:
 		return
 	target_node = node
-	target_position = node.global_position
-	change_state(State.WALKING)
+	move_to(node.global_position)
 
 
 func stop() -> void:
 	target_position = Vector2.ZERO
 	target_node = null
+	path = []
+	path_index = 0
 	if owner_npc:
 		owner_npc.velocity = Vector2.ZERO
 	change_state(State.IDLE)
@@ -217,17 +288,23 @@ func start_investigating() -> void:
 func _on_target_reached() -> void:
 	if owner_npc:
 		owner_npc.velocity = Vector2.ZERO
+	path = []
+	path_index = 0
 	change_state(State.IDLE)
 
 
 func _get_wander_position() -> Vector2:
 	if owner_npc == null:
 		return Vector2.ZERO
+	if GameManager.world_map:
+		return GameManager.world_map.random_walkable_position()
 	var offset = Vector2(randf_range(-100, 100), randf_range(-100, 100))
 	return owner_npc.global_position + offset
 
 
 func _get_patrol_point() -> Vector2:
+	if GameManager.world_map:
+		return GameManager.world_map.random_walkable_position()
 	var patrol_points = [
 		Vector2(400, 300),
 		Vector2(600, 300),

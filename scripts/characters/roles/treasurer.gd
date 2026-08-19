@@ -24,8 +24,9 @@ func _init():
 
 func initialize(npc: BaseNPC) -> void:
 	super.initialize(npc)
+	treasury_position = _cell(19, 9)
 	work_position = treasury_position
-	home_position = Vector2(460, 270)
+	home_position = _cell(17, 7)
 	
 	# Определяем уровень коррупции
 	if randf() < CORRUPTION_CHANCE:
