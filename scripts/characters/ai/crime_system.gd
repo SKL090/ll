@@ -66,12 +66,7 @@ func _execute_arson(criminal_id: int, attempt: Dictionary) -> void:
 		# Урон репутации
 		for npc in GameManager.npcs:
 			if npc != criminal:
-				npc.relationship_graph.modify_relationship(
-					npc.npc_id,
-					criminal_id,
-					trust_delta = -30.0,
-					hate_delta = 40.0
-				)
+				npc.relationship_graph.modify_relationship(npc.npc_id, criminal_id, -30.0, 0.0, 40.0)
 				npc.memory_system.add_memory(
 					MemorySystem.EventType.SUSPICIOUS,
 					criminal_id,
@@ -138,11 +133,7 @@ func _start_riot() -> void:
 				continue
 			# Случайное увеличение ненависти
 			if randf() < 0.3:
-				npc.relationship_graph.modify_relationship(
-					npc.npc_id,
-					other.npc_id,
-					hate_delta = randf_range(5.0, 15.0)
-				)
+				npc.relationship_graph.modify_relationship(npc.npc_id, other.npc_id, 0.0, 0.0, randf_range(5.0, 15.0))
 	
 	print("🔥🔥 ВОССТАНИЕ НАЧАЛОСЬ! 🔥🔥")
 
@@ -150,11 +141,7 @@ func _start_riot() -> void:
 func _trigger_panic(intensity: float) -> void:
 	for npc in GameManager.npcs:
 		npc.need_system.safety -= intensity
-		npc.relationship_graph.modify_relationship(
-			npc.npc_id,
-			npc.npc_id,  # К городу в целом
-			trust_delta = -10.0
-		)
+		npc.relationship_graph.modify_relationship(npc.npc_id, npc.npc_id, -10.0)  # К городу в целом
 
 ## Попытка поджога
 func attempt_arson(criminal: BaseNPC, target: Node2D, building_name: String = "Неизвестно") -> bool:

@@ -65,38 +65,38 @@ func modify_relationship(npc_id: int, target_id: int, trust_delta: float = 0.0, 
 
 ## Помочь другому NPC
 func help(npc_id: int, target_id: int) -> void:
-	modify_relationship(npc_id, target_id, trust_delta = 10.0, love_delta = 5.0)
+	modify_relationship(npc_id, target_id, 10.0, 5.0)
 	# Обратная связь
-	modify_relationship(target_id, npc_id, trust_delta = 5.0, love_delta = 3.0)
+	modify_relationship(target_id, npc_id, 5.0, 3.0)
 
 ## Оскорбить другого NPC
 func insult(npc_id: int, target_id: int) -> void:
-	modify_relationship(npc_id, target_id, trust_delta = -15.0, hate_delta = 15.0)
+	modify_relationship(npc_id, target_id, -15.0, 0.0, 15.0)
 	# Обратная связь
-	modify_relationship(target_id, npc_id, trust_delta = -20.0, hate_delta = 20.0)
+	modify_relationship(target_id, npc_id, -20.0, 0.0, 20.0)
 	
 	# Триггер для системы убийств
 	_notify_murder_system(npc_id, target_id, 15.0)
 
 ## Украсть у другого NPC
 func steal_from(npc_id: int, target_id: int) -> void:
-	modify_relationship(npc_id, target_id, trust_delta = -30.0, hate_delta = 20.0)
-	modify_relationship(target_id, npc_id, trust_delta = -40.0, hate_delta = 35.0)
+	modify_relationship(npc_id, target_id, -30.0, 0.0, 20.0)
+	modify_relationship(target_id, npc_id, -40.0, 0.0, 35.0)
 	
 	# Триггер для системы убийств - кража сильнее влияет
 	_notify_murder_system(npc_id, target_id, 25.0)
 
 ## Убить другого NPC (перед убийством)
 func prepare_for_murder(npc_id: int, target_id: int) -> void:
-	modify_relationship(npc_id, target_id, trust_delta = -50.0, hate_delta = 30.0)
+	modify_relationship(npc_id, target_id, -50.0, 0.0, 30.0)
 
 ## Стать свидетелем преступления
 func witness_crime(npc_id: int, criminal_id: int, crime_type: String) -> void:
 	match crime_type:
 		"theft":
-			modify_relationship(npc_id, criminal_id, trust_delta = -25.0, hate_delta = 15.0)
+			modify_relationship(npc_id, criminal_id, -25.0, 0.0, 15.0)
 		"murder":
-			modify_relationship(npc_id, criminal_id, trust_delta = -60.0, hate_delta = 50.0)
+			modify_relationship(npc_id, criminal_id, -60.0, 0.0, 50.0)
 
 ## Уведомить систему убийств о триггерном событии
 func _notify_murder_system(npc_id: int, target_id: int, hatred_increase: float) -> void:

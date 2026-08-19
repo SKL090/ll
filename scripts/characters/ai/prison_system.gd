@@ -69,11 +69,7 @@ func release_from_prison(npc_id: int) -> void:
 		# Отношения с полицией ухудшаются
 		for other in GameManager.npcs:
 			if other.role is SheriffRole:
-				npc.relationship_graph.modify_relationship(
-					npc_id,
-					other.npc_id,
-					trust_delta = -10.0
-				)
+				npc.relationship_graph.modify_relationship(npc_id, other.npc_id, -10.0)
 	
 	emit_signal("prisoner_released", npc_id)
 	print("🎉 %s освобождён!" % prisoner_name)
@@ -137,11 +133,7 @@ func escape_prison(npc_id: int) -> void:
 		
 		# Все относятся хуже
 		for other in GameManager.npcs:
-			npc.relationship_graph.modify_relationship(
-				npc.npc_id,
-				other.npc_id,
-				trust_delta = -15.0
-			)
+			npc.relationship_graph.modify_relationship(npc.npc_id, other.npc_id, -15.0)
 		
 		# Шериф начинает охоту
 		for other in GameManager.npcs:

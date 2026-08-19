@@ -255,12 +255,7 @@ func _apply_justice(culprit: BaseNPC, is_solved: bool) -> void:
 	
 	# Эффект на репутацию
 	for npc in GameManager.npcs:
-		npc.relationship_graph.modify_relationship(
-			npc.npc_id, 
-			culprit.npc_id, 
-			trust_delta = -50.0, 
-			hate_delta = 30.0
-		)
+		npc.relationship_graph.modify_relationship(npc.npc_id, culprit.npc_id, -50.0, 0.0, 30.0)
 	
 	if is_solved:
 		# Убийца несёт наказание

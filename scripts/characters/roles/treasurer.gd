@@ -59,12 +59,7 @@ func _caught_stealing() -> void:
 	# Отношения с бароном резко падают
 	var baron = _get_baron()
 	if baron:
-		owner_npc.relationship_graph.modify_relationship(
-			owner_npc.npc_id,
-			baron.npc_id,
-			trust_delta = -100.0,
-			hate_delta = 50.0
-		)
+		owner_npc.relationship_graph.modify_relationship(owner_npc.npc_id, baron.npc_id, -100.0, 0.0, 50.0)
 		
 		# Барон наказывает
 		if baron.role is BaronRole:

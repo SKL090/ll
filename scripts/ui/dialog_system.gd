@@ -175,12 +175,7 @@ func _insult_action() -> void:
 func _befriend_action() -> void:
 	var player_npc = _find_player_npc()
 	if player_npc and player_npc != current_npc:
-		current_npc.relationship_graph.modify_relationship(
-			current_npc.npc_id, 
-			player_npc.npc_id, 
-			trust_delta = 20.0, 
-			love_delta = 25.0
-		)
+		current_npc.relationship_graph.modify_relationship(current_npc.npc_id, player_npc.npc_id, 20.0, 25.0)
 		
 		dialog_text.text = "%s радуется вашей дружбе!\n\n'Спасибо, друг!'" % current_npc.npc_name
 

@@ -86,12 +86,7 @@ func _broadcast_mayor_death() -> void:
 		for other in GameManager.npcs:
 			if other.npc_id == npc.npc_id:
 				continue
-			npc.relationship_graph.modify_relationship(
-				npc.npc_id,
-				other.npc_id,
-				trust_delta = -15.0,
-				hate_delta = 10.0
-			)
+			npc.relationship_graph.modify_relationship(npc.npc_id, other.npc_id, -15.0, 0.0, 10.0)
 		
 		# Добавляем память
 		npc.memory_system.add_memory(

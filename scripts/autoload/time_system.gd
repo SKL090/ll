@@ -1,5 +1,4 @@
 ## Система времени и дня/ночи
-class_name TimeSystem
 extends Node
 
 signal time_changed(game_time: float)

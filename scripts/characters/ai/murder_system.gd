@@ -212,12 +212,7 @@ func _update_relationships_after_murder(killer: BaseNPC, victim: BaseNPC) -> voi
 		
 		# Если были друзьями
 		if rel_to_victim.love > 30:
-			npc.relationship_graph.modify_relationship(
-				npc.npc_id,
-				killer.npc_id,
-				trust_delta = -40.0,
-				hate_delta = 50.0
-			)
+			npc.relationship_graph.modify_relationship(npc.npc_id, killer.npc_id, -40.0, 0.0, 50.0)
 			# Могут планировать месть
 			_react_to_murder(npc, killer)
 
@@ -258,12 +253,7 @@ func _create_witness_memories(killer: BaseNPC, victim: BaseNPC) -> void:
 		)
 		
 		# Отношения резко падают
-		witness.relationship_graph.modify_relationship(
-			witness.npc_id,
-			killer.npc_id,
-			trust_delta = -50.0,
-			hate_delta = 40.0
-		)
+		witness.relationship_graph.modify_relationship(witness.npc_id, killer.npc_id, -50.0, 0.0, 40.0)
 
 ## Уведомить шерифа о попытке убийства
 func _notify_sheriff_about_attempt(planner: BaseNPC, target: BaseNPC) -> void:

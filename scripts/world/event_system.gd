@@ -188,11 +188,7 @@ func _apply_meeting_effects() -> void:
 	if mayor:
 		for npc in GameManager.npcs:
 			if npc != mayor:
-				npc.relationship_graph.modify_relationship(
-					npc.npc_id,
-					mayor.npc_id,
-					trust_delta = -5.0
-				)
+				npc.relationship_graph.modify_relationship(npc.npc_id, mayor.npc_id, -5.0)
 
 ## Обновить события (вызывается ежедневно)
 func update_events() -> void:

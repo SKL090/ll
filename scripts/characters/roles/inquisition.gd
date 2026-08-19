@@ -173,12 +173,7 @@ func _burn_heretic(target: BaseNPC) -> void:
 		)
 		
 		# Отношения
-		npc.relationship_graph.modify_relationship(
-			npc.npc_id,
-			owner_npc.npc_id,
-			trust_delta = 10.0,
-			hate_delta = -5.0
-		)
+		npc.relationship_graph.modify_relationship(npc.npc_id, owner_npc.npc_id, 10.0, 0.0, -5.0)
 	
 	# Удаляем из подозреваемых
 	if target.npc_id in suspects:
