@@ -1,0 +1,252 @@
+[gd_scene load_steps=5 format=3 uid="uid://main_scene"]
+
+[ext_resource type="Script" path="res://scripts/world/city.gd" id="1_city"]
+[ext_resource type="Script" path="res://scripts/ui/hud.gd" id="2_hud"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_1"]
+size = Vector2(1200, 600)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ground"]
+size = Vector2(1280, 720)
+
+[node name="Main" type="Node2D"]
+script = ExtResource("1_city")
+
+[node name="Background" type="ColorRect" parent="."]
+offset_left = 40.0
+offset_top = 60.0
+offset_right = 1240.0
+offset_bottom = 660.0
+color = Color(0.29, 0.486, 0.137, 1)
+
+[node name="Ground" type="StaticBody2D" parent="."]
+position = Vector2(640, 360)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Ground"]
+shape = SubResource("RectangleShape2D_ground")
+
+[node name="Roads" type="Node2D" parent="."]
+
+[node name="Road1" type="ColorRect" parent="Roads"]
+offset_left = 0.0
+offset_top = 300.0
+offset_right = 1280.0
+offset_bottom = 340.0
+color = Color(0.333, 0.333, 0.333, 1)
+
+[node name="Road2" type="ColorRect" parent="Roads"]
+offset_left = 300.0
+offset_top = 0.0
+offset_right = 340.0
+offset_bottom = 720.0
+color = Color(0.333, 0.333, 0.333, 1)
+
+[node name="Buildings" type="Node2D" parent="."]
+
+[node name="Castle" type="ColorRect" parent="Buildings"]
+offset_left = 520.0
+offset_top = 160.0
+offset_right = 640.0
+offset_bottom = 250.0
+color = Color(0.5, 0.4, 0.35, 1)
+
+[node name="Treasury" type="ColorRect" parent="Buildings"]
+offset_left = 460.0
+offset_top = 230.0
+offset_right = 520.0
+offset_bottom = 280.0
+color = Color(0.6, 0.6, 0.2, 1)
+
+[node name="Cathedral" type="ColorRect" parent="Buildings"]
+offset_left = 500.0
+offset_top = 390.0
+offset_right = 600.0
+offset_bottom = 470.0
+color = Color(0.7, 0.7, 0.75, 1)
+
+[node name="InquisitionOffice" type="ColorRect" parent="Buildings"]
+offset_left = 220.0
+offset_top = 320.0
+offset_right = 300.0
+offset_bottom = 380.0
+color = Color(0.4, 0.0, 0.0, 1)
+
+[node name="Prison" type="ColorRect" parent="Buildings"]
+offset_left = 160.0
+offset_top = 380.0
+offset_right = 210.0
+offset_bottom = 440.0
+color = Color(0.2, 0.2, 0.2, 1)
+
+[node name="Barracks" type="ColorRect" parent="Buildings"]
+offset_left = 160.0
+offset_top = 290.0
+offset_right = 210.0
+offset_bottom = 320.0
+color = Color(0.3, 0.3, 0.4, 1)
+
+[node name="Shop" type="ColorRect" parent="Buildings"]
+offset_left = 420.0
+offset_top = 380.0
+offset_right = 500.0
+offset_bottom = 440.0
+color = Color(0.878, 0.482, 0.224, 1)
+
+[node name="Farm" type="ColorRect" parent="Buildings"]
+offset_left = 100.0
+offset_top = 150.0
+offset_right = 200.0
+offset_bottom = 200.0
+color = Color(0.6, 0.8, 0.4, 1)
+
+[node name="House1" type="ColorRect" parent="Buildings"]
+offset_left = 650.0
+offset_top = 380.0
+offset_right = 720.0
+offset_bottom = 440.0
+color = Color(0.91, 0.831, 0.722, 1)
+
+[node name="House2" type="ColorRect" parent="Buildings"]
+offset_left = 750.0
+offset_top = 380.0
+offset_right = 820.0
+offset_bottom = 440.0
+color = Color(0.91, 0.831, 0.722, 1)
+
+[node name="House3" type="ColorRect" parent="Buildings"]
+offset_left = 650.0
+offset_top = 480.0
+offset_right = 720.0
+offset_bottom = 540.0
+color = Color(0.91, 0.831, 0.722, 1)
+
+[node name="House4" type="ColorRect" parent="Buildings"]
+offset_left = 750.0
+offset_top = 480.0
+offset_right = 820.0
+offset_bottom = 540.0
+color = Color(0.91, 0.831, 0.722, 1)
+
+[node name="House5" type="ColorRect" parent="Buildings"]
+offset_left = 850.0
+offset_top = 380.0
+offset_right = 920.0
+offset_bottom = 440.0
+color = Color(0.91, 0.831, 0.722, 1)
+
+[node name="House6" type="ColorRect" parent="Buildings"]
+offset_left = 850.0
+offset_top = 480.0
+offset_right = 920.0
+offset_bottom = 540.0
+color = Color(0.91, 0.831, 0.722, 1)
+
+[node name="DarkForest" type="ColorRect" parent="Buildings"]
+offset_left = 850.0
+offset_top = 520.0
+offset_right = 950.0
+offset_bottom = 620.0
+color = Color(0.15, 0.2, 0.15, 1)
+
+[node name="NPCs" type="Node2D" parent="."]
+
+[node name="Labels" type="Node2D" parent="."]
+
+[node name="TimeLabel" type="Label" parent="."]
+offset_left = 60.0
+offset_top = 15.0
+offset_right = 200.0
+offset_bottom = 50.0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 24
+text = "День 1 | 06:00"
+
+[node name="PhaseLabel" type="Label" parent="."]
+offset_left = 60.0
+offset_top = 40.0
+offset_right = 200.0
+offset_bottom = 65.0
+theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
+theme_override_font_sizes/font_size = 14
+text = "Раннее утро"
+
+[node name="WeatherLabel" type="Label" parent="."]
+offset_left = 250.0
+offset_top = 15.0
+offset_right = 350.0
+offset_bottom = 50.0
+theme_override_colors/font_color = Color(1, 0.9, 0.3, 1)
+theme_override_font_sizes/font_size = 20
+text = "☀️"
+
+[node name="TreasuryLabel" type="Label" parent="."]
+offset_left = 1000.0
+offset_top = 15.0
+offset_right = 1200.0
+offset_bottom = 50.0
+theme_override_colors/font_color = Color(1, 0.8, 0.2, 1)
+theme_override_font_sizes/font_size = 20
+text = "💰 1000"
+horizontal_alignment = 2
+
+[node name="StatsLabel" type="Label" parent="."]
+offset_left = 1050.0
+offset_top = 35.0
+offset_right = 1220.0
+offset_bottom = 55.0
+theme_override_colors/font_color = Color(0.8, 0.8, 0.8, 1)
+theme_override_font_sizes/font_size = 12
+text = "👥 13 | 🔥 0%"
+horizontal_alignment = 2
+
+[node name="OrderLabel" type="Label" parent="."]
+offset_left = 60.0
+offset_top = 655.0
+offset_right = 250.0
+offset_bottom = 680.0
+theme_override_colors/font_color = Color(0.3, 0.9, 0.3, 1)
+theme_override_font_sizes/font_size = 14
+text = "📊 Порядок: 100%"
+
+[node name="HUD" type="CanvasLayer" parent="."]
+script = ExtResource("2_hud")
+
+[node name="InfoPanel" type="PanelContainer" parent="HUD"]
+visible = false
+offset_left = 60.0
+offset_top = 580.0
+offset_right = 450.0
+offset_bottom = 710.0
+
+[node name="VBox" type="VBoxContainer" parent="HUD/InfoPanel"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="HUD/InfoPanel/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 16
+text = "Выберите NPC"
+
+[node name="DialogHint" type="Label" parent="HUD"]
+offset_left = 500.0
+offset_top = 680.0
+offset_right = 700.0
+offset_bottom = 700.0
+theme_override_colors/font_color = Color(0.5, 0.5, 0.5, 1)
+theme_override_font_sizes/font_size = 12
+text = "ЛКМ: диалог | ПКМ: пауза | M: карта отношений"
+
+[node name="ControlsHelp" type="PanelContainer" parent="HUD"]
+offset_left = 500.0
+offset_top = 5.0
+offset_right = 800.0
+offset_bottom = 45.0
+
+[node name="VBox" type="VBoxContainer" parent="HUD/ControlsHelp"]
+layout_mode = 2
+
+[node name="Row1" type="Label" parent="HUD/ControlsHelp/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6, 0.6, 0.6, 1)
+theme_override_font_sizes/font_size = 12
+text = "F5: сохранить | F6: загрузить | M: отношения | R: новая игра"
